@@ -1,0 +1,26 @@
+{
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "deploy:scroll": "hardhat run scripts/deploy.js --network scrollSepolia",
+    "verify:scroll": "hardhat verify --network scrollSepolia",
+    "frontend": "npx http-server frontend -p 3000"
+  },
+  "name": "agropredict",
+  "version": "1.0.0",
+  "main": "hardhat.config.js",
+  "directories": {
+    "test": "test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.0.0",
+    "dotenv": "^17.2.0",
+    "hardhat": "^2.25.0"
+  }
+}
