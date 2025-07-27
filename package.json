@@ -1,26 +1,53 @@
 {
-  "scripts": {
-    "compile": "hardhat compile",
-    "test": "hardhat test",
-    "node": "hardhat node",
-    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
-    "deploy:scroll": "hardhat run scripts/deploy.js --network scrollSepolia",
-    "verify:scroll": "hardhat verify --network scrollSepolia",
-    "frontend": "npx http-server frontend -p 3000"
-  },
-  "name": "agropredict",
+  "name": "agropredict-mvp",
   "version": "1.0.0",
-  "main": "hardhat.config.js",
-  "directories": {
-    "test": "test"
+  "description": "AgroPredict MVP - Smart contracts para tokenización de cosechas",
+  "main": "index.js",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "test": "npx hardhat test",
+    "coverage": "npx hardhat coverage",
+    "clean": "npx hardhat clean",
+    "deploy:local": "npx hardhat run scripts/deploy.js --network hardhat",
+    "deploy:scroll-sepolia": "npx hardhat run scripts/deploy.js --network scrollSepolia",
+    "deploy:scroll": "npx hardhat run scripts/deploy.js --network scroll",
+    "verify:scroll-sepolia": "npx hardhat run scripts/verify.js --network scrollSepolia",
+    "verify:scroll": "npx hardhat run scripts/verify.js --network scroll",
+    "node": "npx hardhat node",
+    "console:scroll-sepolia": "npx hardhat console --network scrollSepolia",
+    "console:scroll": "npx hardhat console --network scroll",
+    "flatten": "npx hardhat flatten contracts/AgroPredict.sol > flattened.sol",
+    "size": "npx hardhat size-contracts",
+    "gas-report": "REPORT_GAS=true npx hardhat test",
+    "setup": "npm install && npm run compile",
+    "start": "npm run node"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": [
+    "blockchain",
+    "defi",
+    "agriculture",
+    "tokenization",
+    "scroll",
+    "smart-contracts",
+    "solidity",
+    "mvp"
+  ],
+  "author": "AgroPredict Team",
+  "license": "MIT",
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^6.0.0",
-    "dotenv": "^17.2.0",
-    "hardhat": "^2.25.0"
+    "@nomicfoundation/hardhat-toolbox": "^2.0.2",
+    "@openzeppelin/contracts": "^4.9.6",
+    "hardhat": "^2.19.5",
+    "dotenv": "^16.4.5",
+    "chai": "^4.3.10",
+    "ethers": "^5.7.2",
+    "hardhat-gas-reporter": "^1.0.10",
+    "solidity-coverage": "^0.8.5"
+  },
+  "dependencies": {
+    "fs-extra": "^11.2.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }

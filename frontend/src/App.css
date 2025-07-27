@@ -1,0 +1,273 @@
+/* 🎨 AgroPredict Frontend Styles */
+
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Variables CSS personalizadas */
+:root {
+  --agro-green: #16a34a;
+  --agro-green-light: #22c55e;
+  --agro-green-dark: #15803d;
+  --agro-blue: #2563eb;
+  --agro-orange: #ea580c;
+  --agro-gray: #6b7280;
+}
+
+/* Clases base */
+.app {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+/* Componentes personalizados */
+.agro-card {
+  @apply bg-white rounded-lg shadow-md border border-gray-200 p-4;
+  transition: all 0.2s ease-in-out;
+}
+
+.agro-card:hover {
+  @apply shadow-lg;
+  transform: translateY(-2px);
+}
+
+.agro-button-primary {
+  @apply bg-green-600 text-white py-2 px-4 rounded-lg font-medium;
+  @apply hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  transition: all 0.2s ease-in-out;
+}
+
+.agro-button-secondary {
+  @apply bg-white text-green-600 border border-green-600 py-2 px-4 rounded-lg font-medium;
+  @apply hover:bg-green-50 focus:ring-2 focus:ring-green-500 focus:ring-offset-2;
+  transition: all 0.2s ease-in-out;
+}
+
+.agro-input {
+  @apply w-full p-3 border border-gray-300 rounded-lg text-base;
+  @apply focus:ring-2 focus:ring-green-500 focus:border-green-500;
+  @apply disabled:bg-gray-100 disabled:cursor-not-allowed;
+}
+
+/* Estados de carga */
+.loading-spinner {
+  @apply animate-spin rounded-full border-2 border-gray-300 border-t-green-600;
+  width: 20px;
+  height: 20px;
+}
+
+.loading-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50;
+}
+
+/* Alertas */
+.alert {
+  @apply p-3 rounded-lg flex items-center gap-2 mb-4;
+}
+
+.alert-success {
+  @apply bg-green-50 text-green-700 border border-green-200;
+}
+
+.alert-error {
+  @apply bg-red-50 text-red-700 border border-red-200;
+}
+
+.alert-warning {
+  @apply bg-yellow-50 text-yellow-700 border border-yellow-200;
+}
+
+.alert-info {
+  @apply bg-blue-50 text-blue-700 border border-blue-200;
+}
+
+/* Tarjetas de predicción */
+.prediction-card {
+  @apply bg-white rounded-lg shadow-md p-4;
+  border-left: 4px solid var(--agro-green);
+}
+
+.prediction-confidence-high {
+  @apply bg-green-100 text-green-800;
+}
+
+.prediction-confidence-medium {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.prediction-confidence-low {
+  @apply bg-red-100 text-red-800;
+}
+
+/* Navegación */
+.nav-tabs {
+  @apply flex bg-white border-b;
+}
+
+.nav-tab {
+  @apply flex-1 flex items-center justify-center gap-2 py-3 px-2 text-sm font-medium;
+  @apply transition-colors cursor-pointer;
+}
+
+.nav-tab-active {
+  @apply bg-green-600 text-white;
+}
+
+.nav-tab-inactive {
+  @apply bg-white text-green-600 border border-green-600 hover:bg-green-50;
+}
+
+/* Marketplace */
+.marketplace-grid {
+  @apply grid gap-6;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.token-card {
+  @apply bg-white rounded-lg shadow-md p-4 border;
+  transition: all 0.2s ease-in-out;
+}
+
+.token-card:hover {
+  @apply shadow-lg;
+  transform: translateY(-1px);
+}
+
+.token-status-available {
+  @apply bg-green-100 text-green-800;
+}
+
+.token-status-sold {
+  @apply bg-gray-100 text-gray-800;
+}
+
+.token-status-pending {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+/* Formularios */
+.form-group {
+  @apply space-y-1;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700;
+}
+
+.form-input {
+  @apply agro-input;
+}
+
+.form-textarea {
+  @apply w-full p-3 border border-gray-300 rounded-lg resize-none;
+  @apply focus:ring-2 focus:ring-green-500 focus:border-green-500;
+}
+
+.form-select {
+  @apply w-full p-3 border border-gray-300 rounded-lg bg-white;
+  @apply focus:ring-2 focus:ring-green-500 focus:border-green-500;
+}
+
+/* Modal */
+.modal-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50;
+}
+
+.modal-content {
+  @apply bg-white rounded-lg max-w-md w-full p-6;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Responsivo */
+@media (max-width: 640px) {
+  .nav-tab span {
+    @apply hidden;
+  }
+  
+  .marketplace-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-content {
+    @apply m-2 max-w-none;
+  }
+}
+
+/* Animaciones */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Estados focus para accesibilidad */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2;
+}
+
+/* Utilidades personalizadas */
+.text-agro-green {
+  color: var(--agro-green);
+}
+
+.bg-agro-green {
+  background-color: var(--agro-green);
+}
+
+.border-agro-green {
+  border-color: var(--agro-green);
+}
+
+/* Scroll suave */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Ocultar scrollbar pero mantener funcionalidad */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Transiciones globales */
+* {
+  transition-property: color, background-color, border-color, transform, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

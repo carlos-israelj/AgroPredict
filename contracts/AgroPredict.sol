@@ -1,188 +1,279 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-contract AgroPredict {
-    // Owner of the contract
-    address public owner;
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+/**
+ * @title AgroPredict
+ * @dev Smart contract para tokenización de cosechas futuras y predicciones de precios
+ * @author AgroPredict Team
+ */
+contract AgroPredict is ERC721, Ownable, ReentrancyGuard {
     
-    // Supported crops
-    enum Crop { CACAO, BANANA, COFFEE }
-    
-    // Price structure
-    struct PriceData {
-        uint256 price; // Price in cents USD
-        uint256 timestamp;
+    // Estructura para representar un token de cosecha
+    struct CropToken {
+        uint256 id;                    // ID único del token
+        address farmer;                // Dirección del agricultor
+        string cropType;               // Tipo de cultivo (CACAO, BANANO)
+        uint256 quantity;              // Cantidad en quintales
+        uint256 pricePerQuintal;       // Precio por quintal en wei
+        uint256 deliveryDate;          // Fecha de entrega (timestamp)
+        uint256 createdAt;             // Fecha de creación
+        bool isDelivered;              // ¿Fue entregado?
+        bool isSold;                   // ¿Fue vendido?
+        address buyer;                 // Dirección del comprador
+        string location;               // Ubicación de la finca
+        string ipfsHash;               // Hash de metadata en IPFS
     }
     
-    // Order structure for marketplace
-    struct Order {
-        address farmer;
-        Crop crop;
-        uint256 quantity; // in kg
-        uint256 pricePerKg; // in cents USD
-        bool isSellOrder;
-        bool isActive;
+    // Estructura para predicciones de precios
+    struct PricePrediction {
+        string cropType;               // Tipo de cultivo
+        uint256 predictedPrice;        // Precio predicho en wei
+        uint256 confidence;            // Nivel de confianza (0-100)
+        uint256 timestamp;             // Cuándo se hizo la predicción
+        uint256 targetDate;            // Para qué fecha es la predicción
     }
     
-    // Mappings
-    mapping(Crop => PriceData[]) public priceHistory;
-    mapping(Crop => uint256) public currentPrice;
-    mapping(address => mapping(Crop => uint256)) public priceAlerts;
+    // Mappings para almacenar datos
+    mapping(uint256 => CropToken) public cropTokens;           // ID => Token
+    mapping(string => PricePrediction) public latestPredictions; // Tipo => Predicción
+    mapping(address => uint256[]) public farmerTokens;         // Agricultor => IDs de tokens
+    mapping(address => bool) public verifiedFarmers;          // Agricultores verificados
     
-    // Orders
-    Order[] public orders;
-    mapping(address => uint256[]) public userOrders;
+    // Variables de estado
+    uint256 private _tokenIdCounter;                           // Contador de tokens
+    uint256 public platformFee = 250;                         // Comisión de plataforma (2.5%)
     
-    // Events
-    event PriceUpdated(Crop crop, uint256 price, uint256 timestamp);
-    event AlertSet(address user, Crop crop, uint256 targetPrice);
-    event AlertTriggered(address user, Crop crop, uint256 currentPrice);
-    event OrderCreated(uint256 orderId, address farmer, Crop crop, uint256 quantity, uint256 price, bool isSellOrder);
-    event OrderMatched(uint256 orderId, address buyer, address seller);
+    // Eventos
+    event CropTokenMinted(
+        uint256 indexed tokenId,
+        address indexed farmer,
+        string cropType,
+        uint256 quantity,
+        uint256 pricePerQuintal
+    );
     
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can call this");
-        _;
+    event CropTokenSold(
+        uint256 indexed tokenId,
+        address indexed buyer,
+        uint256 totalPrice
+    );
+    
+    event CropDelivered(
+        uint256 indexed tokenId,
+        address indexed farmer,
+        address indexed buyer
+    );
+    
+    event PricePredictionUpdated(
+        string cropType,
+        uint256 predictedPrice,
+        uint256 confidence
+    );
+    
+    event FarmerVerified(address indexed farmer);
+    
+    // Constructor
+    constructor() ERC721("AgroPredict Crop Tokens", "AGRO") {}
+    
+    // Verificar agricultor (solo owner)
+    function verifyFarmer(address farmer) external onlyOwner {
+        verifiedFarmers[farmer] = true;
+        emit FarmerVerified(farmer);
     }
     
-    constructor() {
-        owner = msg.sender;
+    // Actualizar predicción de precios (solo owner)
+    function updatePricePrediction(
+        string memory cropType,
+        uint256 predictedPrice,
+        uint256 confidence,
+        uint256 targetDate
+    ) external onlyOwner {
+        require(confidence <= 100, "Confidence must be <= 100");
         
-        // Initialize with some data (in production, this would come from oracles)
-        currentPrice[Crop.CACAO] = 320; // $3.20 per kg
-        currentPrice[Crop.BANANA] = 45;  // $0.45 per kg
-        currentPrice[Crop.COFFEE] = 550; // $5.50 per kg
-    }
-    
-    // Update price (in production, this would be called by Chainlink oracles)
-    function updatePrice(Crop _crop, uint256 _price) external onlyOwner {
-        currentPrice[_crop] = _price;
-        priceHistory[_crop].push(PriceData(_price, block.timestamp));
-        
-        emit PriceUpdated(_crop, _price, block.timestamp);
-        
-        // Check alerts (basic implementation)
-        // In production, this would be done off-chain for gas efficiency
-    }
-    
-    // Get price prediction (MVP: simple 7-day moving average)
-    function getPricePrediction(Crop _crop) external view returns (uint256) {
-        PriceData[] memory history = priceHistory[_crop];
-        if (history.length == 0) return currentPrice[_crop];
-        
-        uint256 sum = 0;
-        uint256 count = 0;
-        uint256 sevenDaysAgo = block.timestamp - 7 days;
-        
-        for (uint i = history.length; i > 0 && count < 7; i--) {
-            if (history[i-1].timestamp >= sevenDaysAgo) {
-                sum += history[i-1].price;
-                count++;
-            }
-        }
-        
-        return count > 0 ? sum / count : currentPrice[_crop];
-    }
-    
-    // Set price alert
-    function setPriceAlert(Crop _crop, uint256 _targetPrice) external {
-        priceAlerts[msg.sender][_crop] = _targetPrice;
-        emit AlertSet(msg.sender, _crop, _targetPrice);
-    }
-    
-    // Create order (simplified marketplace)
-    function createOrder(
-        Crop _crop,
-        uint256 _quantity,
-        uint256 _pricePerKg,
-        bool _isSellOrder
-    ) external {
-        Order memory newOrder = Order({
-            farmer: msg.sender,
-            crop: _crop,
-            quantity: _quantity,
-            pricePerKg: _pricePerKg,
-            isSellOrder: _isSellOrder,
-            isActive: true
+        latestPredictions[cropType] = PricePrediction({
+            cropType: cropType,
+            predictedPrice: predictedPrice,
+            confidence: confidence,
+            timestamp: block.timestamp,
+            targetDate: targetDate
         });
         
-        orders.push(newOrder);
-        uint256 orderId = orders.length - 1;
-        userOrders[msg.sender].push(orderId);
-        
-        emit OrderCreated(orderId, msg.sender, _crop, _quantity, _pricePerKg, _isSellOrder);
+        emit PricePredictionUpdated(cropType, predictedPrice, confidence);
     }
     
-    // Get active orders for a crop
-    function getActiveOrders(Crop _crop, bool _sellOrders) external view returns (uint256[] memory) {
+    // Tokenizar cosecha futura
+    function mintCropToken(
+        string memory cropType,
+        uint256 quantity,
+        uint256 pricePerQuintal,
+        uint256 deliveryDate,
+        string memory location,
+        string memory ipfsHash
+    ) external {
+        require(verifiedFarmers[msg.sender], "Farmer not verified");
+        require(deliveryDate > block.timestamp, "Delivery date must be in future");
+        require(quantity > 0, "Quantity must be positive");
+        require(pricePerQuintal > 0, "Price must be positive");
+        
+        uint256 tokenId = _tokenIdCounter++;
+        
+        cropTokens[tokenId] = CropToken({
+            id: tokenId,
+            farmer: msg.sender,
+            cropType: cropType,
+            quantity: quantity,
+            pricePerQuintal: pricePerQuintal,
+            deliveryDate: deliveryDate,
+            createdAt: block.timestamp,
+            isDelivered: false,
+            isSold: false,
+            buyer: address(0),
+            location: location,
+            ipfsHash: ipfsHash
+        });
+        
+        farmerTokens[msg.sender].push(tokenId);
+        _mint(msg.sender, tokenId);
+        
+        emit CropTokenMinted(tokenId, msg.sender, cropType, quantity, pricePerQuintal);
+    }
+    
+    // Comprar token de cosecha
+    function buyCropToken(uint256 tokenId) external payable nonReentrant {
+        CropToken storage token = cropTokens[tokenId];
+        require(_exists(tokenId), "Token does not exist");
+        require(!token.isSold, "Token already sold");
+        require(token.deliveryDate > block.timestamp, "Delivery date passed");
+        
+        uint256 totalPrice = token.quantity * token.pricePerQuintal;
+        require(msg.value >= totalPrice, "Insufficient payment");
+        
+        // Calcular comisión de plataforma
+        uint256 platformCommission = (totalPrice * platformFee) / 10000;
+        uint256 farmerPayment = totalPrice - platformCommission;
+        
+        // Marcar como vendido
+        token.isSold = true;
+        token.buyer = msg.sender;
+        
+        // Transferir pagos
+        payable(token.farmer).transfer(farmerPayment);
+        
+        // Devolver exceso si lo hay
+        if (msg.value > totalPrice) {
+            payable(msg.sender).transfer(msg.value - totalPrice);
+        }
+        
+        emit CropTokenSold(tokenId, msg.sender, totalPrice);
+    }
+    
+    // Confirmar entrega de cosecha
+    function confirmDelivery(uint256 tokenId) external {
+        CropToken storage token = cropTokens[tokenId];
+        require(_exists(tokenId), "Token does not exist");
+        require(token.isSold, "Token not sold yet");
+        require(!token.isDelivered, "Already delivered");
+        require(msg.sender == token.buyer || msg.sender == token.farmer, "Not authorized");
+        
+        token.isDelivered = true;
+        
+        emit CropDelivered(tokenId, token.farmer, token.buyer);
+    }
+    
+    // Obtener tokens de un agricultor
+    function getFarmerTokens(address farmer) external view returns (uint256[] memory) {
+        return farmerTokens[farmer];
+    }
+    
+    // Obtener detalles de un token
+    function getCropToken(uint256 tokenId) external view returns (CropToken memory) {
+        require(_exists(tokenId), "Token does not exist");
+        return cropTokens[tokenId];
+    }
+    
+    // Obtener predicción actual
+    function getPrediction(string memory cropType) external view returns (PricePrediction memory) {
+        return latestPredictions[cropType];
+    }
+    
+    // Obtener tokens disponibles para comprar
+    function getAvailableTokens() external view returns (uint256[] memory) {
+        uint256[] memory availableTokens = new uint256[](_tokenIdCounter);
         uint256 count = 0;
         
-        // Count active orders
-        for (uint i = 0; i < orders.length; i++) {
-            if (orders[i].isActive && 
-                orders[i].crop == _crop && 
-                orders[i].isSellOrder == _sellOrders) {
+        for (uint256 i = 0; i < _tokenIdCounter; i++) {
+            if (_exists(i) && !cropTokens[i].isSold && cropTokens[i].deliveryDate > block.timestamp) {
+                availableTokens[count] = i;
                 count++;
             }
         }
         
-        // Collect order IDs
-        uint256[] memory activeOrders = new uint256[](count);
-        uint256 index = 0;
-        
-        for (uint i = 0; i < orders.length; i++) {
-            if (orders[i].isActive && 
-                orders[i].crop == _crop && 
-                orders[i].isSellOrder == _sellOrders) {
-                activeOrders[index] = i;
-                index++;
-            }
-        }
-        
-        return activeOrders;
-    }
-    
-    // Cancel order
-    function cancelOrder(uint256 _orderId) external {
-        require(_orderId < orders.length, "Invalid order ID");
-        require(orders[_orderId].farmer == msg.sender, "Not your order");
-        require(orders[_orderId].isActive, "Order not active");
-        
-        orders[_orderId].isActive = false;
-    }
-    
-    // Get historical prices
-    function getPriceHistory(Crop _crop, uint256 _days) external view returns (PriceData[] memory) {
-        PriceData[] memory history = priceHistory[_crop];
-        if (history.length == 0) return history;
-        
-        uint256 startTime = block.timestamp - (_days * 1 days);
-        uint256 count = 0;
-        
-        // Count relevant entries
-        for (uint i = 0; i < history.length; i++) {
-            if (history[i].timestamp >= startTime) count++;
-        }
-        
-        // Create result array
-        PriceData[] memory result = new PriceData[](count);
-        uint256 index = 0;
-        
-        for (uint i = 0; i < history.length; i++) {
-            if (history[i].timestamp >= startTime) {
-                result[index] = history[i];
-                index++;
-            }
+        // Redimensionar array
+        uint256[] memory result = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            result[i] = availableTokens[i];
         }
         
         return result;
     }
     
-    // Utility function to get crop name
-    function getCropName(Crop _crop) external pure returns (string memory) {
-        if (_crop == Crop.CACAO) return "Cacao";
-        if (_crop == Crop.BANANA) return "Banana";
-        if (_crop == Crop.COFFEE) return "Coffee";
-        return "Unknown";
+    // Cambiar comisión de plataforma (solo owner)
+    function setPlatformFee(uint256 newFee) external onlyOwner {
+        require(newFee <= 1000, "Fee cannot exceed 10%");
+        platformFee = newFee;
+    }
+    
+    // Retirar fondos de comisiones (solo owner)
+    function withdrawFees() external onlyOwner {
+        payable(owner()).transfer(address(this).balance);
+    }
+    
+    // Función para emergencias - pausar contratos
+    function emergencyWithdraw(uint256 tokenId) external {
+        CropToken storage token = cropTokens[tokenId];
+        require(msg.sender == token.farmer, "Not token owner");
+        require(!token.isSold, "Token already sold");
+        
+        _burn(tokenId);
+        delete cropTokens[tokenId];
+        
+        // Remover de array del agricultor
+        uint256[] storage tokens = farmerTokens[msg.sender];
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (tokens[i] == tokenId) {
+                tokens[i] = tokens[tokens.length - 1];
+                tokens.pop();
+                break;
+            }
+        }
+    }
+    
+    // Obtener estadísticas generales
+    function getStats() external view returns (
+        uint256 totalTokens,
+        uint256 availableTokens,
+        uint256 soldTokens,
+        uint256 totalVolume
+    ) {
+        totalTokens = _tokenIdCounter;
+        availableTokens = 0;
+        soldTokens = 0;
+        totalVolume = 0;
+        
+        for (uint256 i = 0; i < _tokenIdCounter; i++) {
+            if (_exists(i)) {
+                CropToken memory token = cropTokens[i];
+                if (token.isSold) {
+                    soldTokens++;
+                    totalVolume += token.quantity * token.pricePerQuintal;
+                } else if (token.deliveryDate > block.timestamp) {
+                    availableTokens++;
+                }
+            }
+        }
     }
 }

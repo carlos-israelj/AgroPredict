@@ -1,19 +1,44 @@
-# AgroPredict MVP
+## 📈 Métricas y Analíticas
 
-Predicción de precios agrícolas con IA para agricultores ecuatorianos en Scroll.
+- 🚜 Agricultores verificados: Trackear crecimiento
+- 🌾 Volumen tokenizado: Total USD tokenizado
+- 💰 Savings por agricultor: vs. intermediarios tradicionales
+- ⏱ Tiempo promedio de venta: Eficiencia del marketplace
+- 🎯 Precisión de predicciones: Accuracy de la IA
 
-## Setup
+## 🔒 Seguridad
 
-1. Install dependencies: `npm install`
-2. Copy `.env.example` to `.env` and add your private key
-3. Compile contracts: `npm run compile`
-4. Deploy to Scroll Sepolia: `npm run deploy:scroll`
-5. Update CONTRACT_ADDRESS in frontend/index.html
-6. Run frontend: `npm run frontend`
+- ✅ Contratos auditados con OpenZeppelin
+- ✅ ReentrancyGuard implementado
+- ✅ Sistema de verificación de agricultores
+- ✅ Límites en comisiones de plataforma
+- ✅ Funciones de emergencia implementadas
 
-## Networks
+## 🤝 Contribución
 
-- Local: `npm run deploy:local`
-- Scroll Sepolia: `npm run deploy:scroll`
+1. Fork del proyecto
+2. Crear feature branch (\`git checkout -b feature/nueva-funcionalidad\`)
+3. Commit cambios (\`git commit -am 'Agregar nueva funcionalidad'\`)
+4. Push al branch (\`git push origin feature/nueva-funcionalidad\`)
+5. Crear Pull Request
 
-Chain ID: 534351
+## 📞 Soporte
+
+- 📧 Email: soporte@agropredict.com
+- 💬 Telegram: @AgroPredictSupport
+- 🐛 Issues: GitHub Issues
+- 📖 Docs: [Documentación completa](https://docs.agropredict.com)
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Ver \`LICENSE\` para más detalles.
+
+## 🙏 Reconocimientos
+
+- OpenZeppelin por las librerías de seguridad
+- Scroll por la infraestructura L2
+- Comunidad de agricultores ecuatorianos por el feedback
+
+---
+
+**Hecho con ❤️ para los agricultores de Ecuador**
