@@ -11,11 +11,16 @@ const BuyTokenModal = ({ token, currentBalance, onClose, onConfirm }) => {
   const maxQuantity = token.quantity;
   
   // 🔧 FIX CRÍTICO: Calcular precios correctamente
-  console.log('=== DEBUG BUY TOKEN MODAL ===');
-  console.log('token completo:', token);
-  console.log('token.pricePerUnitUSD:', token.pricePerUnitUSD);
-  console.log('token.pricePerUnitETH:', token.pricePerUnitETH);
-  console.log('currentBalance:', currentBalance);
+  console.log('=== 🐛 DEBUG BUY TOKEN MODAL INIT ===');
+  console.log('🔍 token completo:', token);
+  console.log('🔍 token.id:', token.id);
+  console.log('🔍 token.cropType:', token.cropType);
+  console.log('🔍 token.pricePerUnitUSD:', token.pricePerUnitUSD);
+  console.log('🔍 token.pricePerUnitETH:', token.pricePerUnitETH);
+  console.log('🔍 token.totalPriceUSD:', token.totalPriceUSD);
+  console.log('🔍 token.totalPriceETH:', token.totalPriceETH);
+  console.log('🔍 currentBalance:', currentBalance);
+  console.log('🔍 productInfo found:', productInfo);
   
   // El token debe tener el precio en USD (como $10), necesitamos convertir a ETH para el pago
   const pricePerUnitUSD = token.pricePerUnitUSD || token.pricePerUnit || 10; // Fallback
@@ -27,45 +32,89 @@ const BuyTokenModal = ({ token, currentBalance, onClose, onConfirm }) => {
   const remainingTokens = maxQuantity - quantity;
   const hasEnoughBalance = currentBalance >= totalPriceETH;
 
-  console.log('Precios calculados:');
-  console.log('pricePerUnitUSD:', pricePerUnitUSD);
-  console.log('pricePerUnitETH:', pricePerUnitETH);
-  console.log('totalPriceUSD:', totalPriceUSD);
-  console.log('totalPriceETH:', totalPriceETH);
-  console.log('hasEnoughBalance:', hasEnoughBalance);
+  console.log('💰 Precios calculados:');
+  console.log('💰 pricePerUnitUSD:', pricePerUnitUSD);
+  console.log('💰 pricePerUnitETH:', pricePerUnitETH);
+  console.log('💰 totalPriceUSD:', totalPriceUSD);
+  console.log('💰 totalPriceETH:', totalPriceETH);
+  console.log('💰 currentBalance:', currentBalance);
+  console.log('💰 hasEnoughBalance:', hasEnoughBalance);
+  console.log('💰 remainingTokens:', remainingTokens);
 
   const handleQuantityChange = (newQuantity) => {
+    console.log('📊 Changing quantity from', quantity, 'to', newQuantity);
     const validQuantity = Math.max(1, Math.min(newQuantity, maxQuantity));
+    console.log('📊 Valid quantity:', validQuantity);
     setQuantity(validQuantity);
   };
 
   const handleConfirm = async () => {
+    console.log('=== 🚀 HANDLE CONFIRM STARTED ===');
+    console.log('🔍 Pre-validation checks:');
+    console.log('🔍 hasEnoughBalance:', hasEnoughBalance);
+    console.log('🔍 currentBalance:', currentBalance);
+    console.log('🔍 totalPriceETH needed:', totalPriceETH);
+    
     if (!hasEnoughBalance) {
+      console.log('❌ INSUFFICIENT BALANCE - aborting');
       alert('Balance insuficiente para esta compra');
       return;
     }
 
     try {
       setLoading(true);
-      console.log('=== CONFIRMING PURCHASE ===');
-      console.log('Sending totalPriceETH:', totalPriceETH);
+      console.log('=== 📤 PREPARING PURCHASE DATA ===');
       
-      // 🔧 FIX: Enviar el precio en ETH (lo que espera el contrato)
-      await onConfirm({
+      const purchaseData = {
         tokenId: token.id,
         quantity: quantity,
         totalPrice: totalPriceETH, // ✅ Enviar en ETH
         totalPriceUSD: totalPriceUSD, // Para referencia
         remainingQuantity: remainingTokens
-      });
-      onClose();
+      };
+      
+      console.log('📦 Purchase data to send:', purchaseData);
+      console.log('📦 purchaseData.tokenId:', purchaseData.tokenId);
+      console.log('📦 purchaseData.quantity:', purchaseData.quantity);
+      console.log('📦 purchaseData.totalPrice (ETH):', purchaseData.totalPrice);
+      console.log('📦 purchaseData.totalPriceUSD:', purchaseData.totalPriceUSD);
+      
+      console.log('=== 📞 CALLING onConfirm ===');
+      console.log('📞 onConfirm function:', typeof onConfirm);
+      console.log('📞 About to call onConfirm with purchaseData...');
+      
+      const result = await onConfirm(purchaseData);
+      
+      console.log('=== 📨 onConfirm RESPONSE ===');
+      console.log('📨 Result received:', result);
+      console.log('📨 Result type:', typeof result);
+      
+      if (result && result.success !== false) {
+        console.log('✅ Purchase successful, closing modal');
+        onClose();
+      } else {
+        console.log('❌ Purchase failed:', result);
+        alert('Error en la compra: ' + (result?.message || 'Error desconocido'));
+      }
+      
     } catch (error) {
-      console.error('Error en la compra:', error);
-      alert('Error al procesar la compra. Intenta de nuevo.');
+      console.log('=== ❌ PURCHASE ERROR ===');
+      console.error('❌ Error en handleConfirm:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error stack:', error.stack);
+      alert('Error al procesar la compra: ' + error.message);
     } finally {
+      console.log('🏁 Setting loading to false');
       setLoading(false);
     }
   };
+
+  // Debug cuando cambia la cantidad
+  React.useEffect(() => {
+    console.log('🔄 Quantity changed to:', quantity);
+    console.log('🔄 New totalPriceETH:', quantity * pricePerUnitETH);
+    console.log('🔄 New hasEnoughBalance:', currentBalance >= (quantity * pricePerUnitETH));
+  }, [quantity, pricePerUnitETH, currentBalance]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -75,10 +124,13 @@ const BuyTokenModal = ({ token, currentBalance, onClose, onConfirm }) => {
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <DollarSign size={20} className="text-blue-600" />
-              Comprar Token
+              Comprar Token #{token.id}
             </h2>
             <button
-              onClick={onClose}
+              onClick={() => {
+                console.log('❌ Modal closed by user');
+                onClose();
+              }}
               className="text-gray-500 hover:text-gray-700"
             >
               <X size={20} />
@@ -87,6 +139,21 @@ const BuyTokenModal = ({ token, currentBalance, onClose, onConfirm }) => {
         </div>
 
         <div className="p-6 space-y-4">
+          {/* Debug info visible en UI para desarrollo */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs">
+              <h5 className="font-bold mb-1">🐛 Debug Info:</h5>
+              <div>Token ID: {token.id}</div>
+              <div>Crop Type: {token.cropType}</div>
+              <div>Price USD: ${pricePerUnitUSD}</div>
+              <div>Price ETH: {pricePerUnitETH.toFixed(8)}</div>
+              <div>Total ETH: {totalPriceETH.toFixed(8)}</div>
+              <div>Balance: {currentBalance.toFixed(8)}</div>
+              <div>Sufficient: {hasEnoughBalance ? '✅ YES' : '❌ NO'}</div>
+              <div>onConfirm type: {typeof onConfirm}</div>
+            </div>
+          )}
+
           {/* Información del token */}
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex items-center gap-3 mb-3">
@@ -125,7 +192,10 @@ const BuyTokenModal = ({ token, currentBalance, onClose, onConfirm }) => {
             
             <div className="flex items-center gap-3">
               <button
-                onClick={() => handleQuantityChange(quantity - 1)}
+                onClick={() => {
+                  console.log('⬇️ Decrease button clicked');
+                  handleQuantityChange(quantity - 1);
+                }}
                 disabled={quantity <= 1}
                 className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -137,12 +207,18 @@ const BuyTokenModal = ({ token, currentBalance, onClose, onConfirm }) => {
                 min="1"
                 max={maxQuantity}
                 value={quantity}
-                onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
+                onChange={(e) => {
+                  console.log('🔢 Input quantity changed to:', e.target.value);
+                  handleQuantityChange(parseInt(e.target.value) || 1);
+                }}
                 className="flex-1 text-center p-2 border border-gray-300 rounded-lg font-bold text-lg"
               />
               
               <button
-                onClick={() => handleQuantityChange(quantity + 1)}
+                onClick={() => {
+                  console.log('⬆️ Increase button clicked');
+                  handleQuantityChange(quantity + 1);
+                }}
                 disabled={quantity >= maxQuantity}
                 className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -168,7 +244,10 @@ const BuyTokenModal = ({ token, currentBalance, onClose, onConfirm }) => {
               ].map((option) => (
                 <button
                   key={option.label}
-                  onClick={() => setQuantity(option.value)}
+                  onClick={() => {
+                    console.log(`🚀 Quick select ${option.label} clicked (${option.value})`);
+                    setQuantity(option.value);
+                  }}
                   className="flex-1 py-1 px-2 text-xs border border-gray-300 rounded hover:bg-gray-50"
                 >
                   {option.label}
@@ -264,29 +343,25 @@ const BuyTokenModal = ({ token, currentBalance, onClose, onConfirm }) => {
             </ul>
           </div>
 
-          {/* Debug info en desarrollo */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="bg-gray-100 border rounded-lg p-3 text-xs">
-              <h5 className="font-bold mb-1">🐛 Debug Info:</h5>
-              <div>Token ID: {token.id}</div>
-              <div>Precio USD: {pricePerUnitUSD}</div>
-              <div>Precio ETH: {pricePerUnitETH.toFixed(8)}</div>
-              <div>Total ETH: {totalPriceETH.toFixed(8)}</div>
-              <div>Balance: {currentBalance.toFixed(8)}</div>
-              <div>Suficiente: {hasEnoughBalance ? 'Sí' : 'No'}</div>
-            </div>
-          )}
-
           {/* Botones */}
           <div className="flex gap-3 pt-2">
             <button
-              onClick={onClose}
+              onClick={() => {
+                console.log('❌ Cancel button clicked');
+                onClose();
+              }}
               className="flex-1 bg-gray-200 text-gray-800 py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors"
             >
               Cancelar
             </button>
             <button
-              onClick={handleConfirm}
+              onClick={() => {
+                console.log('=== 🎯 PURCHASE BUTTON CLICKED ===');
+                console.log('🎯 Button state - loading:', loading);
+                console.log('🎯 Button state - hasEnoughBalance:', hasEnoughBalance);
+                console.log('🎯 About to call handleConfirm...');
+                handleConfirm();
+              }}
               disabled={!hasEnoughBalance || loading}
               className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-bold disabled:opacity-50 disabled:cursor-not-allowed"
             >

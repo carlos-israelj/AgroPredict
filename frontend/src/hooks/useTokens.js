@@ -126,128 +126,183 @@ export const useTokens = (isConnected) => {
     }
   };
 
-  // Crear nuevo token en el smart contract
-  // Crear nuevo token - FUNCIÓN COMPLETA ACTUALIZADA
-const createToken = async (tokenData) => {
-  try {
-    setLoading(true);
-    
-    console.log('🔗 Iniciando creación de token...');
-    console.log('tokenData recibida:', tokenData);
-    
-    // FORZAR CONEXIÓN DEL CONTRATO
-    console.log('🔗 Forzando conexión del contrato...');
-    
-    // Importar web3Service dinámicamente
-    const { web3Service } = await import('../utils/web3');
-    
-    console.log('web3Service antes de conectar:', {
-      contract: !!web3Service.contract,
-      account: web3Service.account,
-      provider: !!web3Service.provider
-    });
-    
-    // Forzar conexión si no está conectado
-    if (!web3Service.contract || !web3Service.account) {
-      console.log('⚡ Conectando wallet y contrato...');
-      await web3Service.connectWallet();
-    }
-    
-    console.log('web3Service después de conectar:', {
-      contract: !!web3Service.contract,
-      account: web3Service.account,
-      provider: !!web3Service.provider
-    });
-    
-    // Verificar que el contrato esté realmente conectado
-    if (!web3Service.contract) {
-      throw new Error('No se pudo conectar al contrato. Verifica tu conexión de red.');
-    }
-    
-    console.log('✅ Contrato conectado correctamente');
-    
-    // Obtener precio del producto
-    const productInfo = productData[tokenData.cropType];
-    const pricePerQuintalETH = productInfo.currentPriceETH;
-    
-    console.log('📊 Información del producto:', {
-      cropType: tokenData.cropType,
-      pricePerQuintalUSD: productInfo.currentPriceUSD,
-      pricePerQuintalETH: pricePerQuintalETH
-    });
-    
-    // Preparar datos para el smart contract
-    const contractData = {
-      cropType: tokenData.cropType,
-      quantity: parseInt(tokenData.quantity),
-      pricePerQuintal: pricePerQuintalETH,
-      deliveryDate: tokenData.deliveryDate,
-      location: tokenData.location
-    };
-    
-    console.log('📝 Datos para el contrato:', contractData);
-    
-    // Crear token en el smart contract
-    console.log('🚀 Enviando transacción al smart contract...');
-    const receipt = await web3Service.createCropToken(contractData);
-    
-    console.log('✅ Token creado exitosamente en blockchain:', receipt);
-    
-    // Recargar datos
-    await loadDataFromContract();
-    
-    const totalValueUSD = parseInt(tokenData.quantity) * productInfo.currentPriceUSD;
-    const immediatePaymentUSD = totalValueUSD * 0.7;
-    
-    return {
-      success: true,
-      message: `🎉 ¡Token de ${tokenData.cropType} creado exitosamente! Recibirás ~$${immediatePaymentUSD.toLocaleString()} inmediatamente.`,
-      txHash: receipt.transactionHash
-    };
-    
-  } catch (error) {
-    console.error('❌ Error creando token:', error);
-    
-    // Mensajes de error más específicos
-    let errorMessage = 'Error al crear el token';
-    
-    if (error.message.includes('insufficient funds')) {
-      errorMessage = 'Balance insuficiente para pagar las comisiones de transacción';
-    } else if (error.message.includes('user rejected')) {
-      errorMessage = 'Transacción cancelada por el usuario';
-    } else if (error.message.includes('network')) {
-      errorMessage = 'Error de conexión. Verifica tu red y MetaMask';
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-    
-    return {
-      success: false,
-      message: errorMessage
-    };
-  } finally {
-    setLoading(false);
-  }
-  };
+// ✅ CORRECCIÓN URGENTE en useTokens.js
+// Reemplaza toda la función createToken (líneas ~130-210) con esta versión:
 
-  // Comprar token del smart contract
-  const buyToken = async (tokenId, totalPriceETH) => {
+  const createToken = async (tokenData) => {
     try {
       setLoading(true);
       
-      // Verificar balance suficiente
-      const balance = await web3Service.getBalance();
-      if (parseFloat(balance) < totalPriceETH) {
-        throw new Error('Balance insuficiente para esta compra');
+      console.log('🔗 === INICIANDO CREACIÓN DE TOKEN (FIXED) ===');
+      console.log('tokenData recibida:', tokenData);
+      
+      // Importar web3Service dinámicamente
+      const { web3Service } = await import('../utils/web3');
+      
+      console.log('web3Service antes de conectar:', {
+        contract: !!web3Service.contract,
+        account: web3Service.account,
+        provider: !!web3Service.provider
+      });
+      
+      // Forzar conexión si no está conectado
+      if (!web3Service.contract || !web3Service.account) {
+        console.log('⚡ Conectando wallet y contrato...');
+        await web3Service.connectWallet();
       }
       
-      // Ejecutar compra en el smart contract
-      const receipt = await web3Service.buyToken(tokenId, totalPriceETH);
+      console.log('web3Service después de conectar:', {
+        contract: !!web3Service.contract,
+        account: web3Service.account,
+        provider: !!web3Service.provider
+      });
       
-      console.log('Compra exitosa:', receipt);
+      // Verificar que el contrato esté realmente conectado
+      if (!web3Service.contract) {
+        throw new Error('No se pudo conectar al contrato. Verifica tu conexión de red.');
+      }
+      
+      console.log('✅ Contrato conectado correctamente');
+      
+      // ✅ CORRECCIÓN CRÍTICA: Usar el precio del tokenData directamente
+      console.log('💰 === USANDO PRECIO DEL FORMULARIO ===');
+      console.log('💰 tokenData.pricePerUnit:', tokenData.pricePerUnit);
+      console.log('💰 typeof tokenData.pricePerUnit:', typeof tokenData.pricePerUnit);
+      
+      // ✅ VALIDAR que tenemos el precio correcto
+      if (!tokenData.pricePerUnit || isNaN(parseFloat(tokenData.pricePerUnit))) {
+        throw new Error(`Precio inválido recibido: ${tokenData.pricePerUnit}`);
+      }
+      
+      const priceUSD = parseFloat(tokenData.pricePerUnit);
+      console.log('💰 Precio USD del formulario:', priceUSD);
+      
+      // ✅ CONVERSIÓN USD → ETH
+      const ETH_USD_RATE = 2500;
+      const priceETH = priceUSD / ETH_USD_RATE;
+      
+      console.log('🔧 === CONVERSIÓN DE PRECIO ===');
+      console.log('🔧 Precio USD ingresado:', priceUSD);
+      console.log('🔧 Tasa ETH/USD:', ETH_USD_RATE);
+      console.log('🔧 Precio ETH calculado:', priceETH);
+      
+      // ✅ VERIFICACIÓN ESPECIAL para $4
+      if (priceUSD === 4) {
+        console.log('🎯 CASO ESPECIAL - $4 USD:');
+        console.log('  - Debería ser: 0.0016 ETH');
+        console.log('  - Calculado: ', priceETH, 'ETH');
+        console.log('  - Match:', priceETH === 0.0016 ? '✅' : '❌');
+      }
+      
+      // Preparar datos para el smart contract
+      const contractData = {
+        cropType: tokenData.cropType,
+        quantity: parseInt(tokenData.quantity),
+        pricePerUnit: priceUSD, // ✅ Enviar precio USD del formulario
+        deliveryDate: tokenData.deliveryDate,
+        location: tokenData.location
+      };
+      
+      console.log('📝 === DATOS PARA EL CONTRATO ===');
+      console.log('📝 contractData:', contractData);
+      console.log('📝 contractData.pricePerUnit:', contractData.pricePerUnit);
+      
+      // Crear token en el smart contract
+      console.log('🚀 Enviando transacción al smart contract...');
+      const receipt = await web3Service.createCropToken(contractData);
+      
+      console.log('✅ Token creado exitosamente en blockchain:', receipt);
       
       // Recargar datos
       await loadDataFromContract();
+      
+      const totalValueUSD = parseInt(tokenData.quantity) * priceUSD;
+      const immediatePaymentUSD = totalValueUSD * 0.7;
+      
+      return {
+        success: true,
+        message: `🎉 ¡Token de ${tokenData.cropType} creado exitosamente! Total: $${totalValueUSD}. Recibirás ~$${immediatePaymentUSD.toLocaleString()} inmediatamente.`,
+        txHash: receipt.transactionHash
+      };
+      
+    } catch (error) {
+      console.error('❌ Error creando token:', error);
+      
+      // Mensajes de error más específicos
+      let errorMessage = 'Error al crear el token';
+      
+      if (error.message.includes('insufficient funds')) {
+        errorMessage = 'Balance insuficiente para pagar las comisiones de transacción';
+      } else if (error.message.includes('user rejected')) {
+        errorMessage = 'Transacción cancelada por el usuario';
+      } else if (error.message.includes('network')) {
+        errorMessage = 'Error de conexión. Verifica tu red y MetaMask';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      return {
+        success: false,
+        message: errorMessage
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ AGREGAR esta función buyToken después de la función createToken en useTokens.js:
+
+// Comprar token del smart contract
+  const buyToken = async (tokenId, totalPriceETH) => {
+    console.log('=== 🔗 USETOKENS BUY TOKEN ===');
+    console.log('🔗 tokenId received:', tokenId);
+    console.log('🔗 totalPriceETH received:', totalPriceETH);
+    console.log('🔗 tokenId type:', typeof tokenId);
+    console.log('🔗 totalPriceETH type:', typeof totalPriceETH);
+    
+    try {
+      setLoading(true);
+      
+      console.log('🔍 Checking web3Service...');
+      const { web3Service } = await import('../utils/web3');
+      console.log('🔍 web3Service imported:', !!web3Service);
+      console.log('🔍 web3Service.contract:', !!web3Service.contract);
+      console.log('🔍 web3Service.account:', web3Service.account);
+      
+      // Forzar conexión si es necesario
+      if (!web3Service.contract || !web3Service.account) {
+        console.log('⚡ Forcing web3Service connection...');
+        await web3Service.connectWallet();
+        console.log('⚡ web3Service reconnected');
+      }
+      
+      if (!web3Service.contract) {
+        throw new Error('No se pudo conectar al contrato después del reconnect');
+      }
+      
+      console.log('💰 Checking balance before purchase...');
+      const balance = await web3Service.getBalance();
+      console.log('💰 Current balance:', balance, 'ETH');
+      console.log('💰 Price needed:', totalPriceETH, 'ETH');
+      console.log('💰 Balance sufficient?', parseFloat(balance) >= totalPriceETH);
+      
+      if (parseFloat(balance) < totalPriceETH) {
+        throw new Error(`Balance insuficiente. Tienes ${balance} ETH, necesitas ${totalPriceETH} ETH`);
+      }
+      
+      console.log('📞 Calling web3Service.buyToken...');
+      console.log('📞 Parameters: tokenId =', tokenId, ', totalPrice =', totalPriceETH);
+      
+      const receipt = await web3Service.buyToken(tokenId, totalPriceETH);
+      
+      console.log('✅ Purchase transaction completed!');
+      console.log('✅ Receipt:', receipt);
+      console.log('✅ Transaction hash:', receipt.transactionHash);
+      
+      // Recargar datos después de la compra
+      console.log('🔄 Reloading contract data...');
+      await loadDataFromContract();
+      console.log('🔄 Data reloaded');
       
       return {
         success: true,
@@ -256,9 +311,26 @@ const createToken = async (tokenData) => {
       };
       
     } catch (error) {
-      console.error('Error comprando token:', error);
+      console.log('=== ❌ BUY TOKEN ERROR in useTokens ===');
+      console.error('❌ Error comprando token:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error stack:', error.stack);
+      
+      // Analizar tipos específicos de error
+      if (error.message.includes('insufficient funds')) {
+        console.log('💸 Error type: Insufficient gas fees');
+      } else if (error.message.includes('user rejected')) {
+        console.log('🙅 Error type: User rejected transaction');
+      } else if (error.message.includes('Insufficient payment')) {
+        console.log('💰 Error type: Insufficient payment to contract');
+      } else {
+        console.log('🤷 Error type: Unknown');
+      }
+      
       throw new Error(error.message || 'Error al procesar la compra');
     } finally {
+      console.log('🏁 Setting loading to false in useTokens');
       setLoading(false);
     }
   };

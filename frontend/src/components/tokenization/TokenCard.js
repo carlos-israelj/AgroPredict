@@ -11,12 +11,17 @@ const TokenCard = ({ token }) => {
   const cropType = token.cropType || 'CACAO';
   const productInfo = productData[cropType] || productData['CACAO']; // fallback a CACAO
 
-  // Valores con fallbacks seguros
+  // ✅ OPCIÓN A: Calcular precios en USD
+  const ETH_USD_RATE = 2500;
   const tokenId = token.id || 'N/A';
   const variety = token.variety || 'Estándar';
   const quantity = token.quantity || 0;
-  const pricePerUnit = token.pricePerUnitUSD || token.pricePerUnit || 0;
-  const totalPrice = token.totalPriceUSD || token.totalPrice || (quantity * pricePerUnit);
+  
+  // Convertir de ETH (del contrato) a USD para mostrar
+  const pricePerUnitETH = token.pricePerQuintal || 0; // Viene del contrato en ETH
+  const pricePerUnitUSD = pricePerUnitETH * ETH_USD_RATE; // Convertir a USD
+  const totalPriceUSD = quantity * pricePerUnitUSD;
+  
   const qualityGrade = token.qualityGrade || 'A';
   const deliveryDate = token.deliveryDate || 'No especificada';
   const location = token.location || 'No especificada';
@@ -83,10 +88,10 @@ const TokenCard = ({ token }) => {
             <div className="text-xs text-gray-600">{productInfo?.unit || 'unidades'}</div>
           </div>
 
-          {/* Precio unitario */}
+          {/* Precio unitario en USD */}
           <div className="text-center p-3 bg-gray-50 rounded-lg">
             <DollarSign size={16} className="mx-auto text-gray-600 mb-1" />
-            <div className="font-bold text-lg text-gray-800">${pricePerUnit}</div>
+            <div className="font-bold text-lg text-gray-800">${pricePerUnitUSD.toFixed(2)}</div>
             <div className="text-xs text-gray-600">por {productInfo?.unit}</div>
           </div>
 
@@ -111,25 +116,28 @@ const TokenCard = ({ token }) => {
           <span className="text-sm text-blue-700 font-medium">{location}</span>
         </div>
 
-        {/* Valor total destacado */}
+        {/* Valor total destacado en USD */}
         <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
           <div className="flex justify-between items-center">
             <span className="text-sm text-green-700">Valor Total del Token</span>
             <span className="text-2xl font-bold text-green-600">
-              ${totalPrice.toLocaleString()}
+              ${totalPriceUSD.toLocaleString()}
             </span>
+          </div>
+          <div className="text-xs text-gray-500 text-right mt-1">
+            (~{pricePerUnitETH.toFixed(6)} ETH por unidad)
           </div>
         </div>
 
-        {/* Desglose de pagos */}
+        {/* Desglose de pagos en USD */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
             <div className="text-xs text-green-700 mb-1">💰 Recibido al crear</div>
-            <div className="font-bold text-green-600">${(totalPrice * 0.7).toLocaleString()}</div>
+            <div className="font-bold text-green-600">${(totalPriceUSD * 0.7).toLocaleString()}</div>
           </div>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
             <div className="text-xs text-blue-700 mb-1">🚚 Al entregar</div>
-            <div className="font-bold text-blue-600">${(totalPrice * 0.3).toLocaleString()}</div>
+            <div className="font-bold text-blue-600">${(totalPriceUSD * 0.3).toLocaleString()}</div>
           </div>
         </div>
 

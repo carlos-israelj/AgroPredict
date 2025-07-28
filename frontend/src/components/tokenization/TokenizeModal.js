@@ -22,9 +22,9 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
   });
   const [loading, setLoading] = useState(false);
 
-  // Manejar selección de cultivo
+  // ✅ CORREGIDO: Manejar selección de cultivo - SIN auto-llenar precio
   const handleCropSelection = (cropKey) => {
-    console.log('=== DEBUG CROP SELECTION ===');
+    console.log('=== DEBUG CROP SELECTION (FIXED) ===');
     console.log('cropKey:', cropKey);
     console.log('productData[cropKey]:', productData[cropKey]);
     
@@ -32,7 +32,7 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
     setFormData({
       ...formData,
       cropType: cropKey,
-      pricePerUnit: productData[cropKey].currentPriceUSD.toString()
+      pricePerUnit: ''  // ✅ CAMPO VACÍO para entrada manual
     });
     setStep(2);
   };
@@ -94,9 +94,9 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
     return totalUSD / ETH_USD_RATE;
   };
 
-  // 🔧 FIX PRINCIPAL: Enviar formulario con conversión correcta
+  // ✅ CORREGIDO: Handle Submit con conversión correcta
   const handleSubmit = async () => {
-    console.log('=== HANDLE SUBMIT CALLED ===');
+    console.log('=== HANDLE SUBMIT CALLED (FIXED) ===');
     console.log('formData antes de validar:', formData);
     
     if (!validateForm()) {
@@ -107,40 +107,50 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
     try {
       setLoading(true);
       
-      // 🔧 CONVERSIÓN USD → ETH
-      const priceUSD = parseFloat(formData.pricePerUnit);
-      const ETH_USD_RATE = 2500; // 1 ETH = $2500
-      const priceETH = priceUSD / ETH_USD_RATE;
+      // ✅ VALIDACIÓN del precio ingresado
+      const priceUSDInput = parseFloat(formData.pricePerUnit);
       
-      console.log('=== PRICE CONVERSION ===');
-      console.log('Price USD input:', priceUSD);
-      console.log('Price ETH converted:', priceETH);
-      console.log('Total USD:', calculateTotalValueUSD());
-      console.log('Total ETH:', calculateTotalValueETH());
+      console.log('=== 🔍 PRICE VALIDATION ===');
+      console.log('🔍 formData.pricePerUnit (raw):', formData.pricePerUnit);
+      console.log('🔍 parseFloat result:', priceUSDInput);
+      console.log('🔍 isNaN check:', isNaN(priceUSDInput));
+      console.log('🔍 > 0 check:', priceUSDInput > 0);
       
-      // 🔧 PREPARAR DATOS PARA EL CONTRATO
-      // El contrato espera pricePerQuintal, no pricePerUnit
+      if (isNaN(priceUSDInput) || priceUSDInput <= 0) {
+        throw new Error(`Precio inválido: ${formData.pricePerUnit}. Ingresa un precio válido en dólares.`);
+      }
+      
+      console.log('=== 📦 PREPARING CONTRACT DATA ===');
+      
+      // ✅ PREPARAR datos para el contrato (web3.js hará la conversión USD→ETH)
       const contractData = {
         cropType: formData.cropType,
         variety: formData.variety,
         quantity: parseInt(formData.quantity),
-        pricePerQuintal: priceETH, // ✅ Enviar en ETH
+        pricePerUnit: priceUSDInput, // ✅ Enviar en USD, web3.js convertirá a ETH
         deliveryDate: formData.deliveryDate,
         location: formData.location,
         qualityGrade: formData.qualityGrade,
         organicCertified: formData.organicCertified,
-        description: formData.description,
-        // Mantener referencia para UI
-        pricePerUnitUSD: priceUSD,
-        totalValueUSD: calculateTotalValueUSD(),
-        totalValueETH: calculateTotalValueETH()
+        description: formData.description
       };
       
-      console.log('=== SENDING TO CONTRACT ===');
-      console.log('contractData:', contractData);
+      console.log('📦 contractData final:', contractData);
+      console.log('📦 pricePerUnit (USD):', contractData.pricePerUnit);
+      
+      // 🎯 CASO ESPECIAL PARA CAFÉ
+      if (formData.cropType === 'CAFE' && priceUSDInput === 4) {
+        console.log('🎯 CASO CAFÉ $4 - DETALLES:');
+        console.log('  - Input: $4 USD');
+        console.log('  - Esperado ETH: 0.0016');
+        console.log('  - Cantidad: 1');
+        console.log('  - Total esperado: $4 USD / 0.0016 ETH');
+      }
+      
+      console.log('=== 📞 CALLING onSubmit ===');
       
       const result = await onSubmit(contractData);
-      console.log('onSubmit result:', result);
+      console.log('📨 onSubmit result:', result);
       
       if (result && result.success) {
         console.log('✅ Token creado exitosamente');
@@ -205,7 +215,7 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
                       <div>
                         <div className="font-bold">{crop.name}</div>
                         <div className="text-sm text-gray-600">
-                          ${crop.currentPriceUSD}/{crop.unit}
+                          Referencia: ${crop.currentPriceUSD}/{crop.unit}
                         </div>
                       </div>
                     </div>
@@ -271,6 +281,7 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
                   />
                 </div>
 
+                {/* ✅ CORREGIDO: Campo de precio sin auto-llenado */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Precio por {productData[selectedCrop].unit} ($USD) *
@@ -281,12 +292,15 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
                     value={formData.pricePerUnit}
                     onChange={(e) => handleInputChange('pricePerUnit', e.target.value)}
                     className="w-full p-3 border border-gray-300 rounded-lg"
-                    placeholder={`$${productData[selectedCrop].currentPriceUSD}`}
+                    placeholder="Ingresa tu precio en USD (ej: 4.00)"
                     min="0"
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Equivale a ~{((parseFloat(formData.pricePerUnit) || 0) / 2500).toFixed(6)} ETH
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    💡 Referencia de mercado: ${productData[selectedCrop].currentPriceUSD}/{productData[selectedCrop].unit}
                   </p>
                 </div>
 

@@ -208,42 +208,57 @@ class Web3Service {
     }
   }
 
-  // Crear token de cosecha
+  // ✅ CORREGIDO: Crear token de cosecha con conversión USD→ETH
   async createCropToken(cropData) {
     if (!this.contract) throw new Error('Contrato no conectado');
 
-    // 🔧 FIX: Destructuring con nombres correctos
-    const { cropType, quantity, pricePerQuintal, pricePerUnit, deliveryDate, location } = cropData;
+    const { cropType, quantity, pricePerUnit, deliveryDate, location } = cropData;
     
-    // 🔧 FIX: Usar pricePerQuintal si existe, sino pricePerUnit
-    const priceToUse = pricePerQuintal || pricePerUnit;
+    console.log('🌾 === CREATE CROP TOKEN (FIXED) ===');
+    console.log('🌾 cropData recibida:', cropData);
+    console.log('💰 pricePerUnit (USD):', pricePerUnit);
+    console.log('💰 pricePerUnit type:', typeof pricePerUnit);
     
-    console.log('🌾 Creando token con datos:', cropData);
-    console.log('🔧 Precio a usar:', priceToUse);
+    // ✅ VALIDACIÓN: Verificar que tenemos un precio válido
+    if (!pricePerUnit || isNaN(parseFloat(pricePerUnit)) || parseFloat(pricePerUnit) <= 0) {
+      throw new Error(`Precio inválido: ${pricePerUnit}. Ingresa un precio válido en USD.`);
+    }
     
-    if (!priceToUse) {
-      throw new Error('No se encontró precio válido (pricePerQuintal o pricePerUnit)');
+    // ✅ CONVERSIÓN CORRECTA: USD → ETH → Wei
+    const ETH_USD_RATE = 2500; // 1 ETH = $2500
+    const priceUSD = parseFloat(pricePerUnit);
+    const priceETH = priceUSD / ETH_USD_RATE;
+    const priceInWei = ethers.utils.parseEther(priceETH.toString());
+    
+    console.log('🔧 === CONVERSIÓN DE PRECIO ===');
+    console.log('🔧 Precio USD ingresado:', priceUSD);
+    console.log('🔧 Tasa ETH/USD:', ETH_USD_RATE);
+    console.log('🔧 Precio ETH calculado:', priceETH);
+    console.log('🔧 Precio Wei para contrato:', priceInWei.toString());
+    
+    // ✅ VERIFICACIÓN ESPECIAL para debugging
+    if (priceUSD === 4) {
+      console.log('🎯 CASO ESPECIAL - $4 USD:');
+      console.log('  - Debería ser: 0.0016 ETH');
+      console.log('  - Calculado: ', priceETH, 'ETH');
+      console.log('  - Match:', priceETH === 0.0016 ? '✅' : '❌');
     }
     
     // Convertir fecha a timestamp
     const deliveryTimestamp = Math.floor(new Date(deliveryDate).getTime() / 1000);
     
-    // 🔧 FIX: El priceToUse ya viene convertido a ETH desde el frontend
-    const priceInWei = ethers.utils.parseEther(priceToUse.toString());
-    
-    console.log('📊 Datos convertidos:', {
-      cropType,
-      quantity,
-      priceOriginal: priceToUse,
-      priceInWei: priceInWei.toString(),
-      deliveryTimestamp,
-      location
-    });
+    console.log('📊 === DATOS FINALES PARA CONTRATO ===');
+    console.log('📊 cropType:', cropType);
+    console.log('📊 quantity:', quantity);
+    console.log('📊 priceInWei:', priceInWei.toString());
+    console.log('📊 deliveryTimestamp:', deliveryTimestamp);
+    console.log('📊 location:', location);
 
+    // ✅ LLAMAR AL CONTRATO con precio correctamente convertido
     const tx = await this.contract.mintCropToken(
       cropType,
       quantity,
-      priceInWei,
+      priceInWei,  // ✅ Precio en Wei (convertido de USD)
       deliveryTimestamp,
       location,
       `QmHash${Date.now()}` // IPFS hash simulado
@@ -251,7 +266,7 @@ class Web3Service {
 
     console.log('📤 Transacción enviada:', tx.hash);
     const receipt = await tx.wait();
-    console.log('✅ Token creado, recibo:', receipt);
+    console.log('✅ Token creado exitosamente, recibo:', receipt);
 
     return receipt;
   }
