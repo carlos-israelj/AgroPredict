@@ -1,11 +1,11 @@
 {
   "network": "unknown",
   "chainId": 534351,
-  "address": "0xE73082676Feeb5fAd9a262f57EaC3450E0bA1d91",
+  "address": "0xD7381d1b015138Db3e43a4FF52Da6E09D6a19907",
   "deployer": "0xdF9D35B1981C8151fbdA6b32254F315DF3AFa7b8",
-  "deploymentHash": "0xd1b5d173387b2b6371f55e3d4785b567f6dee799b7a68d372f2336f22928697d",
-  "blockNumber": 11265460,
-  "timestamp": "2025-07-27T06:45:06.924Z",
+  "deploymentHash": "0x84695c388f68eda1c9e94381857c0507affcc5535b347df5acdef252a80b30cd",
+  "blockNumber": 11274101,
+  "timestamp": "2025-07-28T01:32:26.949Z",
   "abi": [
     {
       "type": "constructor",

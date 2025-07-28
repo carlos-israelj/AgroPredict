@@ -2,7 +2,7 @@ require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "0000000000000000000000000000000000000000000000000000000000000001";
-const SCROLLSCAN_API_KEY = process.env.SCROLLSCAN_API_KEY;
+const SCROLLSCAN_API_KEY = process.env.SCROLLSCAN_API_KEY; // ← Esta línea
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {

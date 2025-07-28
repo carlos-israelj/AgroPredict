@@ -1,20 +1,62 @@
 import { ethers } from 'ethers';
 
-// Información del contrato (actualizar después del deploy)
+// Información del contrato
 export const CONTRACT_ADDRESS = process.env.REACT_APP_CONTRACT_ADDRESS || '';
+
+// ABI completo del contrato verificado
 export const CONTRACT_ABI = [
-  // ABI básico - copiar del contract-info.json después del deploy
-  "function verifiedFarmers(address) view returns (bool)",
-  "function mintCropToken(string,uint256,uint256,uint256,string,string) external",
-  "function buyCropToken(uint256) external payable",
-  "function getCropToken(uint256) view returns (tuple)",
-  "function getAvailableTokens() view returns (uint256[])",
-  "function getFarmerTokens(address) view returns (uint256[])",
-  "function getPrediction(string) view returns (tuple)",
-  "function getStats() view returns (uint256,uint256,uint256,uint256)",
-  "event CropTokenMinted(uint256 indexed,address indexed,string,uint256,uint256)",
-  "event CropTokenSold(uint256 indexed,address indexed,uint256)"
+  {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
+  {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"approved","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Approval","type":"event"},
+  {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"operator","type":"address"},{"indexed":false,"internalType":"bool","name":"approved","type":"bool"}],"name":"ApprovalForAll","type":"event"},
+  {"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":true,"internalType":"address","name":"farmer","type":"address"},{"indexed":true,"internalType":"address","name":"buyer","type":"address"}],"name":"CropDelivered","type":"event"},
+  {"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":true,"internalType":"address","name":"farmer","type":"address"},{"indexed":false,"internalType":"string","name":"cropType","type":"string"},{"indexed":false,"internalType":"uint256","name":"quantity","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"pricePerQuintal","type":"uint256"}],"name":"CropTokenMinted","type":"event"},
+  {"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":true,"internalType":"address","name":"buyer","type":"address"},{"indexed":false,"internalType":"uint256","name":"totalPrice","type":"uint256"}],"name":"CropTokenSold","type":"event"},
+  {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"farmer","type":"address"}],"name":"FarmerVerified","type":"event"},
+  {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},
+  {"anonymous":false,"inputs":[{"indexed":false,"internalType":"string","name":"cropType","type":"string"},{"indexed":false,"internalType":"uint256","name":"predictedPrice","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"confidence","type":"uint256"}],"name":"PricePredictionUpdated","type":"event"},
+  {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Transfer","type":"event"},
+  {"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"approve","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"buyCropToken","outputs":[],"stateMutability":"payable","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"confirmDelivery","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"cropTokens","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"address","name":"farmer","type":"address"},{"internalType":"string","name":"cropType","type":"string"},{"internalType":"uint256","name":"quantity","type":"uint256"},{"internalType":"uint256","name":"pricePerQuintal","type":"uint256"},{"internalType":"uint256","name":"deliveryDate","type":"uint256"},{"internalType":"uint256","name":"createdAt","type":"uint256"},{"internalType":"bool","name":"isDelivered","type":"bool"},{"internalType":"bool","name":"isSold","type":"bool"},{"internalType":"address","name":"buyer","type":"address"},{"internalType":"string","name":"location","type":"string"},{"internalType":"string","name":"ipfsHash","type":"string"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"emergencyWithdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"uint256","name":"","type":"uint256"}],"name":"farmerTokens","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"getApproved","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"getAvailableTokens","outputs":[{"internalType":"uint256[]","name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"getCropToken","outputs":[{"components":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"address","name":"farmer","type":"address"},{"internalType":"string","name":"cropType","type":"string"},{"internalType":"uint256","name":"quantity","type":"uint256"},{"internalType":"uint256","name":"pricePerQuintal","type":"uint256"},{"internalType":"uint256","name":"deliveryDate","type":"uint256"},{"internalType":"uint256","name":"createdAt","type":"uint256"},{"internalType":"bool","name":"isDelivered","type":"bool"},{"internalType":"bool","name":"isSold","type":"bool"},{"internalType":"address","name":"buyer","type":"address"},{"internalType":"string","name":"location","type":"string"},{"internalType":"string","name":"ipfsHash","type":"string"}],"internalType":"struct AgroPredict.CropToken","name":"","type":"tuple"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address","name":"farmer","type":"address"}],"name":"getFarmerTokens","outputs":[{"internalType":"uint256[]","name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"string","name":"cropType","type":"string"}],"name":"getPrediction","outputs":[{"components":[{"internalType":"string","name":"cropType","type":"string"},{"internalType":"uint256","name":"predictedPrice","type":"uint256"},{"internalType":"uint256","name":"confidence","type":"uint256"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"targetDate","type":"uint256"}],"internalType":"struct AgroPredict.PricePrediction","name":"","type":"tuple"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"getStats","outputs":[{"internalType":"uint256","name":"totalTokens","type":"uint256"},{"internalType":"uint256","name":"availableTokens","type":"uint256"},{"internalType":"uint256","name":"soldTokens","type":"uint256"},{"internalType":"uint256","name":"totalVolume","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"operator","type":"address"}],"name":"isApprovedForAll","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"string","name":"","type":"string"}],"name":"latestPredictions","outputs":[{"internalType":"string","name":"cropType","type":"string"},{"internalType":"uint256","name":"predictedPrice","type":"uint256"},{"internalType":"uint256","name":"confidence","type":"uint256"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"targetDate","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"string","name":"cropType","type":"string"},{"internalType":"uint256","name":"quantity","type":"uint256"},{"internalType":"uint256","name":"pricePerQuintal","type":"uint256"},{"internalType":"uint256","name":"deliveryDate","type":"uint256"},{"internalType":"string","name":"location","type":"string"},{"internalType":"string","name":"ipfsHash","type":"string"}],"name":"mintCropToken","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"platformFee","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"renounceOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"safeTransferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"bytes","name":"data","type":"bytes"}],"name":"safeTransferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"address","name":"operator","type":"address"},{"internalType":"bool","name":"approved","type":"bool"}],"name":"setApprovalForAll","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"newFee","type":"uint256"}],"name":"setPlatformFee","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"bytes4","name":"interfaceId","type":"bytes4"}],"name":"supportsInterface","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"tokenURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"transferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"string","name":"cropType","type":"string"},{"internalType":"uint256","name":"predictedPrice","type":"uint256"},{"internalType":"uint256","name":"confidence","type":"uint256"},{"internalType":"uint256","name":"targetDate","type":"uint256"}],"name":"updatePricePrediction","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"verifiedFarmers","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address","name":"farmer","type":"address"}],"name":"verifyFarmer","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"withdrawFees","outputs":[],"stateMutability":"nonpayable","type":"function"}
 ];
+
+// Debug de configuración
+console.log('=== DEBUG WEB3 CONFIG ===');
+console.log('CONTRACT_ADDRESS:', CONTRACT_ADDRESS);
+console.log('process.env.REACT_APP_CONTRACT_ADDRESS:', process.env.REACT_APP_CONTRACT_ADDRESS);
+console.log('ABI functions count:', CONTRACT_ABI.filter(item => item.type === 'function').length);
+console.log('========================');
 
 // Configuración de redes
 export const NETWORKS = {
@@ -71,6 +113,8 @@ class Web3Service {
       this.signer = this.provider.getSigner();
       this.account = accounts[0];
 
+      console.log('🔗 Wallet conectado:', this.account);
+
       // Verificar red
       await this.checkNetwork();
 
@@ -81,6 +125,9 @@ class Web3Service {
           CONTRACT_ABI,
           this.signer
         );
+        console.log('📄 Contrato inicializado:', CONTRACT_ADDRESS);
+      } else {
+        console.warn('⚠️ CONTRACT_ADDRESS no definido');
       }
 
       return {
@@ -90,7 +137,7 @@ class Web3Service {
       };
 
     } catch (error) {
-      console.error('Error conectando wallet:', error);
+      console.error('❌ Error conectando wallet:', error);
       throw error;
     }
   }
@@ -100,7 +147,10 @@ class Web3Service {
     const network = await this.provider.getNetwork();
     const targetChainId = process.env.REACT_APP_CHAIN_ID || '534351'; // Scroll Sepolia por defecto
     
+    console.log('🌐 Red actual:', network.chainId, 'Target:', targetChainId);
+    
     if (network.chainId.toString() !== targetChainId) {
+      console.log('🔄 Cambiando a red correcta...');
       await this.switchNetwork();
     }
   }
@@ -115,13 +165,16 @@ class Web3Service {
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: networkConfig.chainId }],
       });
+      console.log('✅ Red cambiada exitosamente');
     } catch (switchError) {
       // Si la red no está agregada, la agregamos
       if (switchError.code === 4902) {
+        console.log('➕ Agregando red...');
         await window.ethereum.request({
           method: 'wallet_addEthereumChain',
           params: [networkConfig],
         });
+        console.log('✅ Red agregada y activada');
       } else {
         throw switchError;
       }
@@ -139,24 +192,54 @@ class Web3Service {
 
   // Verificar si el usuario es agricultor verificado
   async isVerifiedFarmer(address = null) {
-    if (!this.contract) return false;
+    if (!this.contract) {
+      console.warn('⚠️ Contrato no conectado para verificar farmer');
+      return false;
+    }
     
     const targetAddress = address || this.account;
-    return await this.contract.verifiedFarmers(targetAddress);
+    try {
+      const isVerified = await this.contract.verifiedFarmers(targetAddress);
+      console.log(`👨‍🌾 Farmer ${targetAddress} verificado:`, isVerified);
+      return isVerified;
+    } catch (error) {
+      console.error('❌ Error verificando farmer:', error);
+      return false;
+    }
   }
 
   // Crear token de cosecha
   async createCropToken(cropData) {
     if (!this.contract) throw new Error('Contrato no conectado');
 
-    const { cropType, quantity, pricePerQuintal, deliveryDate, location } = cropData;
+    // 🔧 FIX: Destructuring con nombres correctos
+    const { cropType, quantity, pricePerQuintal, pricePerUnit, deliveryDate, location } = cropData;
+    
+    // 🔧 FIX: Usar pricePerQuintal si existe, sino pricePerUnit
+    const priceToUse = pricePerQuintal || pricePerUnit;
+    
+    console.log('🌾 Creando token con datos:', cropData);
+    console.log('🔧 Precio a usar:', priceToUse);
+    
+    if (!priceToUse) {
+      throw new Error('No se encontró precio válido (pricePerQuintal o pricePerUnit)');
+    }
     
     // Convertir fecha a timestamp
     const deliveryTimestamp = Math.floor(new Date(deliveryDate).getTime() / 1000);
     
-    // Convertir precio a wei
-    const priceInWei = ethers.utils.parseEther(pricePerQuintal.toString());
+    // 🔧 FIX: El priceToUse ya viene convertido a ETH desde el frontend
+    const priceInWei = ethers.utils.parseEther(priceToUse.toString());
     
+    console.log('📊 Datos convertidos:', {
+      cropType,
+      quantity,
+      priceOriginal: priceToUse,
+      priceInWei: priceInWei.toString(),
+      deliveryTimestamp,
+      location
+    });
+
     const tx = await this.contract.mintCropToken(
       cropType,
       quantity,
@@ -166,87 +249,161 @@ class Web3Service {
       `QmHash${Date.now()}` // IPFS hash simulado
     );
 
-    return await tx.wait();
+    console.log('📤 Transacción enviada:', tx.hash);
+    const receipt = await tx.wait();
+    console.log('✅ Token creado, recibo:', receipt);
+
+    return receipt;
   }
 
   // Comprar token
-  async buyToken(tokenId, totalPrice) {
+  async buyToken(tokenId, totalPriceETH) {
     if (!this.contract) throw new Error('Contrato no conectado');
 
-    const priceInWei = ethers.utils.parseEther(totalPrice.toString());
+    console.log('💰 Comprando token:', tokenId, 'por', totalPriceETH, 'ETH');
+
+    // Verificar que recibimos un número válido
+    if (isNaN(totalPriceETH) || totalPriceETH <= 0) {
+      throw new Error(`Precio inválido: ${totalPriceETH} ETH`);
+    }
+
+    const priceInWei = ethers.utils.parseEther(totalPriceETH.toString());
+    console.log('💰 Precio en wei:', priceInWei.toString());
+    
+    // Verificar el precio del token en el contrato
+    const tokenData = await this.contract.getCropToken(tokenId);
+    const expectedPrice = tokenData.quantity.mul(tokenData.pricePerQuintal);
+    console.log('📊 Precio esperado por contrato:', ethers.utils.formatEther(expectedPrice), 'ETH');
+    console.log('📊 Precio que estamos enviando:', totalPriceETH, 'ETH');
     
     const tx = await this.contract.buyCropToken(tokenId, {
       value: priceInWei
     });
 
-    return await tx.wait();
+    console.log('📤 Transacción de compra enviada:', tx.hash);
+    const receipt = await tx.wait();
+    console.log('✅ Compra completada, recibo:', receipt);
+
+    return receipt;
   }
 
   // Obtener tokens disponibles
   async getAvailableTokens() {
-    if (!this.contract) return [];
-
-    const tokenIds = await this.contract.getAvailableTokens();
-    const tokens = [];
-
-    for (let i = 0; i < tokenIds.length; i++) {
-      const tokenData = await this.contract.getCropToken(tokenIds[i]);
-      tokens.push(this.formatTokenData(tokenData, tokenIds[i]));
+    if (!this.contract) {
+      console.warn('⚠️ Contrato no conectado para obtener tokens disponibles');
+      return [];
     }
 
-    return tokens;
+    try {
+      const tokenIds = await this.contract.getAvailableTokens();
+      console.log('🛒 Token IDs disponibles:', tokenIds.map(id => id.toNumber()));
+      
+      const tokens = [];
+
+      for (let i = 0; i < tokenIds.length; i++) {
+        const tokenData = await this.contract.getCropToken(tokenIds[i]);
+        tokens.push(this.formatTokenData(tokenData, tokenIds[i]));
+      }
+
+      console.log('📦 Tokens disponibles formateados:', tokens.length);
+      return tokens;
+    } catch (error) {
+      console.error('❌ Error obteniendo tokens disponibles:', error);
+      return [];
+    }
   }
 
   // Obtener tokens del usuario
   async getFarmerTokens(address = null) {
-    if (!this.contract) return [];
-
-    const targetAddress = address || this.account;
-    const tokenIds = await this.contract.getFarmerTokens(targetAddress);
-    const tokens = [];
-
-    for (let i = 0; i < tokenIds.length; i++) {
-      const tokenData = await this.contract.getCropToken(tokenIds[i]);
-      tokens.push(this.formatTokenData(tokenData, tokenIds[i]));
+    if (!this.contract) {
+      console.warn('⚠️ Contrato no conectado para obtener tokens del farmer');
+      return [];
     }
 
-    return tokens;
+    try {
+      const targetAddress = address || this.account;
+      const tokenIds = await this.contract.getFarmerTokens(targetAddress);
+      console.log('🌾 Token IDs del farmer:', tokenIds.map(id => id.toNumber()));
+      
+      const tokens = [];
+
+      for (let i = 0; i < tokenIds.length; i++) {
+        const tokenData = await this.contract.getCropToken(tokenIds[i]);
+        tokens.push(this.formatTokenData(tokenData, tokenIds[i]));
+      }
+
+      console.log('👨‍🌾 Tokens del farmer formateados:', tokens.length);
+      return tokens;
+    } catch (error) {
+      console.error('❌ Error obteniendo tokens del farmer:', error);
+      return [];
+    }
   }
 
   // Obtener predicción de precios
   async getPricePrediction(cropType) {
-    if (!this.contract) return null;
+    if (!this.contract) {
+      console.warn('⚠️ Contrato no conectado para obtener predicción');
+      return null;
+    }
 
-    const prediction = await this.contract.getPrediction(cropType);
-    
-    if (prediction.timestamp.toString() === '0') return null;
+    try {
+      const prediction = await this.contract.getPrediction(cropType);
+      
+      if (prediction.timestamp.toString() === '0') {
+        console.log(`📊 No hay predicción para ${cropType}`);
+        return null;
+      }
 
-    return {
-      cropType: prediction.cropType,
-      predictedPrice: parseFloat(ethers.utils.formatEther(prediction.predictedPrice)),
-      confidence: prediction.confidence.toNumber(),
-      timestamp: prediction.timestamp.toNumber(),
-      targetDate: prediction.targetDate.toNumber()
-    };
+      const formattedPrediction = {
+        cropType: prediction.cropType,
+        predictedPrice: parseFloat(ethers.utils.formatEther(prediction.predictedPrice)),
+        confidence: prediction.confidence.toNumber(),
+        timestamp: prediction.timestamp.toNumber(),
+        targetDate: prediction.targetDate.toNumber()
+      };
+
+      console.log(`🔮 Predicción para ${cropType}:`, formattedPrediction);
+      return formattedPrediction;
+    } catch (error) {
+      console.error(`❌ Error obteniendo predicción para ${cropType}:`, error);
+      return null;
+    }
   }
 
   // Obtener estadísticas
   async getStats() {
-    if (!this.contract) return null;
+    if (!this.contract) {
+      console.warn('⚠️ Contrato no conectado para obtener stats');
+      return null;
+    }
 
-    const stats = await this.contract.getStats();
-    
-    return {
-      totalTokens: stats.totalTokens.toNumber(),
-      availableTokens: stats.availableTokens.toNumber(),
-      soldTokens: stats.soldTokens.toNumber(),
-      totalVolume: parseFloat(ethers.utils.formatEther(stats.totalVolume))
-    };
+    try {
+      const stats = await this.contract.getStats();
+      
+      const formattedStats = {
+        totalTokens: stats.totalTokens.toNumber(),
+        availableTokens: stats.availableTokens.toNumber(),
+        soldTokens: stats.soldTokens.toNumber(),
+        totalVolume: parseFloat(ethers.utils.formatEther(stats.totalVolume))
+      };
+
+      console.log('📊 Estadísticas del contrato:', formattedStats);
+      return formattedStats;
+    } catch (error) {
+      console.error('❌ Error obteniendo estadísticas:', error);
+      return {
+        totalTokens: 0,
+        availableTokens: 0,
+        soldTokens: 0,
+        totalVolume: 0
+      };
+    }
   }
 
   // Formatear datos del token
   formatTokenData(tokenData, tokenId) {
-    return {
+    const formatted = {
       id: tokenId.toNumber(),
       farmer: tokenData.farmer,
       cropType: tokenData.cropType,
@@ -254,20 +411,39 @@ class Web3Service {
       pricePerQuintal: parseFloat(ethers.utils.formatEther(tokenData.pricePerQuintal)),
       totalPrice: tokenData.quantity.toNumber() * parseFloat(ethers.utils.formatEther(tokenData.pricePerQuintal)),
       deliveryDate: new Date(tokenData.deliveryDate.toNumber() * 1000).toLocaleDateString(),
+      deliveryTimestamp: tokenData.deliveryDate.toNumber(),
       location: tokenData.location,
+      ipfsHash: tokenData.ipfsHash,
       isDelivered: tokenData.isDelivered,
       isSold: tokenData.isSold,
       buyer: tokenData.buyer,
-      createdAt: new Date(tokenData.createdAt.toNumber() * 1000).toLocaleDateString()
+      createdAt: new Date(tokenData.createdAt.toNumber() * 1000).toLocaleDateString(),
+      createdTimestamp: tokenData.createdAt.toNumber()
     };
+
+    console.log(`📝 Token ${tokenId.toNumber()} formateado:`, formatted);
+    return formatted;
   }
 
   // Escuchar eventos
   subscribeToEvents(callback) {
-    if (!this.contract) return;
+    if (!this.contract) {
+      console.warn('⚠️ Contrato no conectado para eventos');
+      return;
+    }
+
+    console.log('👂 Suscribiéndose a eventos del contrato...');
 
     // Escuchar tokens creados
     this.contract.on('CropTokenMinted', (tokenId, farmer, cropType, quantity, price) => {
+      console.log('🎉 Evento TokenMinted:', {
+        tokenId: tokenId.toNumber(),
+        farmer,
+        cropType,
+        quantity: quantity.toNumber(),
+        price: parseFloat(ethers.utils.formatEther(price))
+      });
+      
       callback('TokenMinted', {
         tokenId: tokenId.toNumber(),
         farmer,
@@ -279,6 +455,12 @@ class Web3Service {
 
     // Escuchar ventas
     this.contract.on('CropTokenSold', (tokenId, buyer, totalPrice) => {
+      console.log('💰 Evento TokenSold:', {
+        tokenId: tokenId.toNumber(),
+        buyer,
+        totalPrice: parseFloat(ethers.utils.formatEther(totalPrice))
+      });
+      
       callback('TokenSold', {
         tokenId: tokenId.toNumber(),
         buyer,
@@ -289,6 +471,7 @@ class Web3Service {
 
   // Desconectar
   disconnect() {
+    console.log('🔌 Desconectando web3Service...');
     this.provider = null;
     this.signer = null;
     this.contract = null;
