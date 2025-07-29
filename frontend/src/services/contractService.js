@@ -1,5 +1,5 @@
 // frontend/src/services/contractService.js - VERSIÓN CORREGIDA
-// ✅ CAMBIO PRINCIPAL: Conversión USD→Wei mejorada para cualquier precio
+// ✅ CAMBIO PRINCIPAL: Fix en buyToken para evitar "Error desconocido"
 
 import { ethers } from 'ethers';
 import { CONFIG } from '../config';
@@ -465,14 +465,14 @@ class ContractService {
   }
 
   /**
-   * Compra un token del marketplace - VERSIÓN CORREGIDA
+   * ✅ FUNCIÓN CORREGIDA: Compra un token del marketplace - SIN TIMEOUT
    * @param {number|string} tokenId - ID del token a comprar
    * @param {number|string} totalPriceETH - Precio total en ETH (opcional, se calculará desde el contrato)
    * @returns {Promise<Object>} Resultado de la transacción
    */
   async buyToken(tokenId, totalPriceETH = null) {
     try {
-      console.log('💰 === BUYING TOKEN (FIXED) ===');
+      console.log('💰 === BUYING TOKEN (FIXED - NO TIMEOUT) ===');
       console.log('💰 Token ID:', tokenId);
       console.log('💰 Price from frontend:', totalPriceETH);
       
@@ -545,7 +545,7 @@ class ContractService {
         throw new Error(`Balance insuficiente incluyendo gas. Tienes ${balanceETH} ETH, necesitas ${totalCostETH} ETH`);
       }
       
-      // Ejecutar transacción de compra
+      // ✅ EJECUTAR TRANSACCIÓN DE COMPRA (SIN TIMEOUT)
       console.log('🚀 Sending purchase transaction...');
       const tx = await this.contract.buyCropToken(tokenId, {
         value: finalPriceWei,
@@ -554,15 +554,10 @@ class ContractService {
       });
       
       console.log('📤 Transaction sent:', tx.hash);
-      console.log('⏳ Waiting for confirmation...');
+      console.log('⏳ Waiting for confirmation (no timeout)...');
       
-      // Esperar confirmación con timeout
-      const receipt = await Promise.race([
-        tx.wait(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout en la compra del token')), CONFIG.TRANSACTION_TIMEOUT)
-        )
-      ]);
+      // ✅ CORRECCIÓN: ESPERAR SIN TIMEOUT PROBLEMÁTICO
+      const receipt = await tx.wait();
       
       console.log('🎉 PURCHASE SUCCESSFUL!');
       console.log('✅ Receipt:', receipt);
@@ -580,7 +575,8 @@ class ContractService {
         console.log('🎊 Sale event:', saleData);
       }
       
-      return {
+      // ✅ RETORNAR RESULTADO EXITOSO
+      const result = {
         success: true,
         transactionHash: receipt.transactionHash,
         blockNumber: receipt.blockNumber,
@@ -588,9 +584,21 @@ class ContractService {
         saleData: saleData
       };
       
+      console.log('✅ Returning success result:', result);
+      return result;
+      
     } catch (error) {
       console.error('❌ Error buying token:', error);
-      throw new Error('Error comprando token: ' + parseWeb3Error(error));
+      
+      // ✅ RETORNAR ERROR SIN HACER THROW
+      const errorResult = {
+        success: false,
+        message: parseWeb3Error(error),
+        error: error.message
+      };
+      
+      console.log('❌ Returning error result:', errorResult);
+      return errorResult;
     }
   }
 
@@ -812,4 +820,4 @@ export const contractService = new ContractService();
 // Export también la clase para testing
 export { ContractService };
 
-console.log('📜 ContractService module loaded with dynamic price conversion');
+console.log('📜 ContractService module loaded with FIXED buyToken (no timeout issue)');

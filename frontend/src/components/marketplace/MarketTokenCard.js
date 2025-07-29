@@ -30,8 +30,9 @@ const MarketTokenCard = ({ token, currentAccount, currentBalance, onBuy }) => {
   };
 
   const handleConfirmPurchase = async (purchaseData) => {
-    if (onBuy) {
-      await onBuy(purchaseData);
+  if (onBuy) {
+    const result = await onBuy(purchaseData);  // ✅ Debe capturar el resultado
+    return result;  // ✅ Y retornarlo
     }
   };
 

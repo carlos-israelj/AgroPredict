@@ -80,89 +80,92 @@ const AgroPredictApp = () => {
     setTimeout(() => setSuccess(''), 4000);
   };
 
-
-  // 🔧 REEMPLAZA TODA la función handleBuyToken en App.js:
+  // ✅ CORRECCIÓN: Buscar la función handleBuyToken en App.js y REEMPLAZAR completamente:
 
   const handleBuyToken = async (purchaseData) => {
-    console.log('=== 🛒 APP.JS HANDLE BUY TOKEN ===');
-    console.log('🛒 purchaseData received:', purchaseData);
-    console.log('🛒 purchaseData type:', typeof purchaseData);
-    console.log('🛒 purchaseData keys:', Object.keys(purchaseData));
+  console.log('=== 🛒 APP.JS HANDLE BUY TOKEN (FIXED RETURN) ===');
+  console.log('🛒 purchaseData received:', purchaseData);
+  console.log('🛒 purchaseData type:', typeof purchaseData);
+  console.log('🛒 purchaseData keys:', Object.keys(purchaseData));
+  
+  try {
+    const { tokenId, quantity, totalPrice, remainingQuantity } = purchaseData;
     
-    try {
-      const { tokenId, quantity, totalPrice, remainingQuantity } = purchaseData;
-      
-      console.log('🔍 Destructured data:');
-      console.log('🔍 tokenId:', tokenId);
-      console.log('🔍 quantity:', quantity);
-      console.log('🔍 totalPrice:', totalPrice);
-      console.log('🔍 remainingQuantity:', remainingQuantity);
-      console.log('🔍 current balance:', balance);
-      
-      // Verificar balance suficiente
-      console.log('💰 Checking balance...');
-      const hasEnough = hasEnoughBalance(totalPrice);
-      console.log('💰 hasEnoughBalance result:', hasEnough);
-      console.log('💰 balance:', parseFloat(balance));
-      console.log('💰 totalPrice needed:', totalPrice);
-      console.log('💰 difference:', parseFloat(balance) - totalPrice);
-      
-      if (!hasEnough) {
-        console.log('❌ INSUFFICIENT BALANCE in App.js');
-        throw new Error('Balance insuficiente para esta compra');
-      }
-      
-      console.log('✅ Balance sufficient, proceeding with purchase...');
-      
-      // Procesar la compra
-      console.log('📞 Calling buyToken from useTokens hook...');
-      console.log('📞 buyToken function type:', typeof buyToken);
-      
-      const result = await buyToken(tokenId, totalPrice);
-      
-      console.log('📨 buyToken result:', result);
-      console.log('📨 result type:', typeof result);
-      console.log('📨 result success:', result?.success);
-      
-      // ✅ VERIFICAR si buyToken falló
-      if (!result || result.success === false) {
-        console.log('❌ buyToken failed:', result);
-        throw new Error(result?.message || 'Error en la transacción blockchain');
-      }
-      
-      // Deducir del balance solo si la compra fue exitosa
-      console.log('💸 Deducting from balance...');
-      const newBalance = deductFromBalance(totalPrice);
-      console.log('💸 New balance after deduction:', newBalance);
-      
-      const successMessage = `🎉 ¡Compra exitosa! ` +
-        `Has adquirido ${quantity} unidades por $${(totalPrice * 2500).toLocaleString()}. ` +
-        `Balance actualizado: ${newBalance.toFixed(4)} ETH`;
-      
-      console.log('✅ Setting success message:', successMessage);
-      setSuccess(successMessage);
-      
-      setTimeout(() => {
-        console.log('🧹 Clearing success message');
-        setSuccess('');
-      }, 6000);
-      
-      console.log('✅ Returning success result to BuyTokenModal');
-      return { success: true, message: 'Compra completada exitosamente' };
-      
-    } catch (error) {
-      console.log('=== ❌ BUY TOKEN ERROR in App.js ===');
-      console.error('❌ Error in handleBuyToken:', error);
-      console.error('❌ Error message:', error.message);
-      console.error('❌ Error stack:', error.stack);
-      
-      const errorMessage = 'Error en la compra: ' + error.message;
-      console.log('❌ Setting error message:', errorMessage);
-      setWalletError(errorMessage);
-      
-      console.log('❌ Returning error result to BuyTokenModal');
-      return { success: false, message: error.message };
+    console.log('🔍 Destructured data:');
+    console.log('🔍 tokenId:', tokenId);
+    console.log('🔍 quantity:', quantity);
+    console.log('🔍 totalPrice:', totalPrice);
+    console.log('🔍 remainingQuantity:', remainingQuantity);
+    console.log('🔍 current balance:', balance);
+    
+    // Verificar balance suficiente
+    console.log('💰 Checking balance...');
+    const hasEnough = hasEnoughBalance(totalPrice);
+    console.log('💰 hasEnoughBalance result:', hasEnough);
+    console.log('💰 balance:', parseFloat(balance));
+    console.log('💰 totalPrice needed:', totalPrice);
+    console.log('💰 difference:', parseFloat(balance) - totalPrice);
+    
+    if (!hasEnough) {
+      console.log('❌ INSUFFICIENT BALANCE in App.js');
+      throw new Error('Balance insuficiente para esta compra');
     }
+    
+    console.log('✅ Balance sufficient, proceeding with purchase...');
+    
+    // Procesar la compra
+    console.log('📞 Calling buyToken from useTokens hook...');
+    console.log('📞 buyToken function type:', typeof buyToken);
+    
+    const result = await buyToken(tokenId, totalPrice);
+    
+    console.log('📨 buyToken result:', result);
+    console.log('📨 result type:', typeof result);
+    console.log('📨 result success:', result?.success);
+    
+    // ✅ VERIFICAR si buyToken falló
+    if (!result || result.success === false) {
+      console.log('❌ buyToken failed:', result);
+      throw new Error(result?.message || 'Error en la transacción blockchain');
+    }
+    
+    // Deducir del balance solo si la compra fue exitosa
+    console.log('💸 Deducting from balance...');
+    const newBalance = deductFromBalance(totalPrice);
+    console.log('💸 New balance after deduction:', newBalance);
+    
+    const successMessage = `🎉 ¡Compra exitosa! ` +
+      `Has adquirido ${quantity} unidades por $${(totalPrice * 2500).toLocaleString()}. ` +
+      `Balance actualizado: ${newBalance.toFixed(4)} ETH`;
+    
+    console.log('✅ Setting success message:', successMessage);
+    setSuccess(successMessage);
+    
+    setTimeout(() => {
+      console.log('🧹 Clearing success message');
+      setSuccess('');
+    }, 6000);
+    
+    // ✅ CORRECCIÓN CRÍTICA: RETORNAR el resultado exitoso
+    const finalResult = { success: true, message: 'Compra completada exitosamente' };
+    console.log('✅ Returning success result to BuyTokenModal:', finalResult);
+    return finalResult;
+    
+  } catch (error) {
+    console.log('=== ❌ BUY TOKEN ERROR in App.js ===');
+    console.error('❌ Error in handleBuyToken:', error);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error stack:', error.stack);
+    
+    const errorMessage = 'Error en la compra: ' + error.message;
+    console.log('❌ Setting error message:', errorMessage);
+    setWalletError(errorMessage);
+    
+    // ✅ CORRECCIÓN CRÍTICA: RETORNAR el resultado de error
+    const errorResult = { success: false, message: error.message };
+    console.log('❌ Returning error result to BuyTokenModal:', errorResult);
+    return errorResult;
+  }
   };
 
   // Pantalla de conexión
