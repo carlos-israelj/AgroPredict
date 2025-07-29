@@ -4,23 +4,31 @@ import { productData } from '../../data/productData';
 
 const TokenCard = ({ token }) => {
   // Debug para ver qué propiedades tiene el token
-  console.log('=== DEBUG TOKEN CARD ===');
-  console.log('token:', token);
+  console.log('=== DEBUG TOKEN CARD (FIXED) ===');
+  console.log('token completo:', token);
+  console.log('token.pricePerUnit:', token.pricePerUnit);
+  console.log('token.pricePerUnitUSD:', token.pricePerUnitUSD);
+  console.log('token.totalPrice:', token.totalPrice);
+  console.log('token.totalPriceUSD:', token.totalPriceUSD);
 
-  // CAMBIO: usar cropType directamente (ya está en mayúsculas)
   const cropType = token.cropType || 'CACAO';
-  const productInfo = productData[cropType] || productData['CACAO']; // fallback a CACAO
-
-  // ✅ OPCIÓN A: Calcular precios en USD
-  const ETH_USD_RATE = 2500;
+  const productInfo = productData[cropType] || productData['CACAO'];
+  
   const tokenId = token.id || 'N/A';
   const variety = token.variety || 'Estándar';
   const quantity = token.quantity || 0;
   
-  // Convertir de ETH (del contrato) a USD para mostrar
-  const pricePerUnitETH = token.pricePerQuintal || 0; // Viene del contrato en ETH
-  const pricePerUnitUSD = pricePerUnitETH * ETH_USD_RATE; // Convertir a USD
-  const totalPriceUSD = quantity * pricePerUnitUSD;
+  // ✅ CORRECCIÓN: Usar los precios ya formateados que vienen del web3Service
+  const pricePerUnitUSD = token.pricePerUnitUSD || token.pricePerUnit || 0;
+  const totalPriceUSD = token.totalPriceUSD || token.totalPrice || 0;
+  const pricePerUnitETH = token.pricePerUnitETH || 0;
+  const totalPriceETH = token.totalPriceETH || 0;
+  
+  console.log('=== PRECIOS CALCULADOS ===');
+  console.log('pricePerUnitUSD:', pricePerUnitUSD);
+  console.log('totalPriceUSD:', totalPriceUSD);
+  console.log('pricePerUnitETH:', pricePerUnitETH);
+  console.log('totalPriceETH:', totalPriceETH);
   
   const qualityGrade = token.qualityGrade || 'A';
   const deliveryDate = token.deliveryDate || 'No especificada';
@@ -88,10 +96,12 @@ const TokenCard = ({ token }) => {
             <div className="text-xs text-gray-600">{productInfo?.unit || 'unidades'}</div>
           </div>
 
-          {/* Precio unitario en USD */}
+          {/* ✅ PRECIO CORREGIDO - Mostrar en USD */}
           <div className="text-center p-3 bg-gray-50 rounded-lg">
             <DollarSign size={16} className="mx-auto text-gray-600 mb-1" />
-            <div className="font-bold text-lg text-gray-800">${pricePerUnitUSD.toFixed(2)}</div>
+            <div className="font-bold text-lg text-gray-800">
+              {pricePerUnitUSD > 0 ? `$${pricePerUnitUSD.toFixed(2)}` : '$0.00'}
+            </div>
             <div className="text-xs text-gray-600">por {productInfo?.unit}</div>
           </div>
 
@@ -116,28 +126,32 @@ const TokenCard = ({ token }) => {
           <span className="text-sm text-blue-700 font-medium">{location}</span>
         </div>
 
-        {/* Valor total destacado en USD */}
+        {/* ✅ VALOR TOTAL CORREGIDO - Mostrar en USD */}
         <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
           <div className="flex justify-between items-center">
             <span className="text-sm text-green-700">Valor Total del Token</span>
             <span className="text-2xl font-bold text-green-600">
-              ${totalPriceUSD.toLocaleString()}
+              {totalPriceUSD > 0 ? `$${totalPriceUSD.toLocaleString()}` : '$0'}
             </span>
           </div>
           <div className="text-xs text-gray-500 text-right mt-1">
-            (~{pricePerUnitETH.toFixed(6)} ETH por unidad)
+            (~{pricePerUnitETH > 0 ? pricePerUnitETH.toFixed(6) : '0.000000'} ETH por unidad)
           </div>
         </div>
 
-        {/* Desglose de pagos en USD */}
+        {/* ✅ DESGLOSE CORREGIDO - Calcular basado en USD */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
             <div className="text-xs text-green-700 mb-1">💰 Recibido al crear</div>
-            <div className="font-bold text-green-600">${(totalPriceUSD * 0.7).toLocaleString()}</div>
+            <div className="font-bold text-green-600">
+              ${totalPriceUSD > 0 ? (totalPriceUSD * 0.7).toLocaleString() : '0'}
+            </div>
           </div>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
             <div className="text-xs text-blue-700 mb-1">🚚 Al entregar</div>
-            <div className="font-bold text-blue-600">${(totalPriceUSD * 0.3).toLocaleString()}</div>
+            <div className="font-bold text-blue-600">
+              ${totalPriceUSD > 0 ? (totalPriceUSD * 0.3).toLocaleString() : '0'}
+            </div>
           </div>
         </div>
 
@@ -148,6 +162,16 @@ const TokenCard = ({ token }) => {
             <p className="text-sm text-gray-700 mt-1">{description}</p>
           </div>
         )}
+
+        {/* ✅ DEBUG INFO - Mostrar temporalmente para debug */}
+        <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+          <strong>🔧 Debug Info:</strong>
+          <div>pricePerUnitUSD: {pricePerUnitUSD}</div>
+          <div>totalPriceUSD: {totalPriceUSD}</div>
+          <div>pricePerUnitETH: {pricePerUnitETH}</div>
+          <div>token.pricePerUnit: {token.pricePerUnit}</div>
+          <div>token.totalPrice: {token.totalPrice}</div>
+        </div>
 
         {/* Información de comprador si está vendido */}
         {isSold && token.buyer && (

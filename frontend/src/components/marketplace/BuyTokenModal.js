@@ -10,7 +10,7 @@ const BuyTokenModal = ({ token, currentBalance, onClose, onConfirm }) => {
   const productInfo = productData[token.cropType] || productData['CACAO'];
   const maxQuantity = token.quantity;
   
-  // 🔧 FIX CRÍTICO: Calcular precios correctamente
+  // 🔧 FIX CRÍTICO: Calcular precios correctamente y evitar notación científica
   console.log('=== 🐛 DEBUG BUY TOKEN MODAL INIT ===');
   console.log('🔍 token completo:', token);
   console.log('🔍 token.id:', token.id);
@@ -25,18 +25,22 @@ const BuyTokenModal = ({ token, currentBalance, onClose, onConfirm }) => {
   // El token debe tener el precio en USD (como $10), necesitamos convertir a ETH para el pago
   const pricePerUnitUSD = token.pricePerUnitUSD || token.pricePerUnit || 10; // Fallback
   const ETH_USD_RATE = 2500; // 1 ETH = $2500 USD (ajustar según mercado)
-  const pricePerUnitETH = pricePerUnitUSD / ETH_USD_RATE; // Conversión USD -> ETH
   
+  // ✅ CORRECCIÓN: Evitar notación científica usando toFixed y Number
+  const pricePerUnitETH = Number((pricePerUnitUSD / ETH_USD_RATE).toFixed(18)); // Conversión USD -> ETH
   const totalPriceUSD = quantity * pricePerUnitUSD;
-  const totalPriceETH = quantity * pricePerUnitETH;
+  const totalPriceETH = Number((quantity * pricePerUnitETH).toFixed(18));
+  
   const remainingTokens = maxQuantity - quantity;
   const hasEnoughBalance = currentBalance >= totalPriceETH;
 
-  console.log('💰 Precios calculados:');
+  console.log('💰 Precios calculados (FIXED):');
   console.log('💰 pricePerUnitUSD:', pricePerUnitUSD);
   console.log('💰 pricePerUnitETH:', pricePerUnitETH);
   console.log('💰 totalPriceUSD:', totalPriceUSD);
   console.log('💰 totalPriceETH:', totalPriceETH);
+  console.log('💰 totalPriceETH type:', typeof totalPriceETH);
+  console.log('💰 totalPriceETH string:', totalPriceETH.toString());
   console.log('💰 currentBalance:', currentBalance);
   console.log('💰 hasEnoughBalance:', hasEnoughBalance);
   console.log('💰 remainingTokens:', remainingTokens);
@@ -65,10 +69,13 @@ const BuyTokenModal = ({ token, currentBalance, onClose, onConfirm }) => {
       setLoading(true);
       console.log('=== 📤 PREPARING PURCHASE DATA ===');
       
+      // ✅ CORRECCIÓN: Asegurar que totalPrice sea número decimal normal
+      const normalizedTotalPrice = Number(totalPriceETH.toFixed(18));
+      
       const purchaseData = {
         tokenId: token.id,
         quantity: quantity,
-        totalPrice: totalPriceETH, // ✅ Enviar en ETH
+        totalPrice: normalizedTotalPrice, // ✅ Enviar como número decimal normal
         totalPriceUSD: totalPriceUSD, // Para referencia
         remainingQuantity: remainingTokens
       };
@@ -77,6 +84,8 @@ const BuyTokenModal = ({ token, currentBalance, onClose, onConfirm }) => {
       console.log('📦 purchaseData.tokenId:', purchaseData.tokenId);
       console.log('📦 purchaseData.quantity:', purchaseData.quantity);
       console.log('📦 purchaseData.totalPrice (ETH):', purchaseData.totalPrice);
+      console.log('📦 purchaseData.totalPrice type:', typeof purchaseData.totalPrice);
+      console.log('📦 purchaseData.totalPrice string:', purchaseData.totalPrice.toString());
       console.log('📦 purchaseData.totalPriceUSD:', purchaseData.totalPriceUSD);
       
       console.log('=== 📞 CALLING onConfirm ===');
@@ -111,9 +120,11 @@ const BuyTokenModal = ({ token, currentBalance, onClose, onConfirm }) => {
 
   // Debug cuando cambia la cantidad
   React.useEffect(() => {
+    const newTotalPriceETH = Number((quantity * pricePerUnitETH).toFixed(18));
     console.log('🔄 Quantity changed to:', quantity);
-    console.log('🔄 New totalPriceETH:', quantity * pricePerUnitETH);
-    console.log('🔄 New hasEnoughBalance:', currentBalance >= (quantity * pricePerUnitETH));
+    console.log('🔄 New totalPriceETH:', newTotalPriceETH);
+    console.log('🔄 New totalPriceETH type:', typeof newTotalPriceETH);
+    console.log('🔄 New hasEnoughBalance:', currentBalance >= newTotalPriceETH);
   }, [quantity, pricePerUnitETH, currentBalance]);
 
   return (
@@ -142,12 +153,13 @@ const BuyTokenModal = ({ token, currentBalance, onClose, onConfirm }) => {
           {/* Debug info visible en UI para desarrollo */}
           {process.env.NODE_ENV === 'development' && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs">
-              <h5 className="font-bold mb-1">🐛 Debug Info:</h5>
+              <h5 className="font-bold mb-1">🐛 Debug Info (FIXED):</h5>
               <div>Token ID: {token.id}</div>
               <div>Crop Type: {token.cropType}</div>
               <div>Price USD: ${pricePerUnitUSD}</div>
-              <div>Price ETH: {pricePerUnitETH.toFixed(8)}</div>
-              <div>Total ETH: {totalPriceETH.toFixed(8)}</div>
+              <div>Price ETH: {pricePerUnitETH} (type: {typeof pricePerUnitETH})</div>
+              <div>Total ETH: {totalPriceETH} (type: {typeof totalPriceETH})</div>
+              <div>Total ETH String: {totalPriceETH.toString()}</div>
               <div>Balance: {currentBalance.toFixed(8)}</div>
               <div>Sufficient: {hasEnoughBalance ? '✅ YES' : '❌ NO'}</div>
               <div>onConfirm type: {typeof onConfirm}</div>
@@ -269,13 +281,13 @@ const BuyTokenModal = ({ token, currentBalance, onClose, onConfirm }) => {
                 <span>Precio unitario:</span>
                 <div className="text-right">
                   <span className="font-medium">${pricePerUnitUSD} USD</span>
-                  <div className="text-xs text-gray-500">({pricePerUnitETH.toFixed(6)} ETH)</div>
+                  <div className="text-xs text-gray-500">({pricePerUnitETH.toFixed(8)} ETH)</div>
                 </div>
               </div>
               <div className="flex justify-between border-t pt-2">
                 <span className="font-bold">Total a pagar:</span>
                 <div className="text-right">
-                  <span className="font-bold text-blue-600">{totalPriceETH.toFixed(6)} ETH</span>
+                  <span className="font-bold text-blue-600">{totalPriceETH.toFixed(8)} ETH</span>
                   <div className="text-xs text-gray-500">(~${totalPriceUSD.toLocaleString()} USD)</div>
                 </div>
               </div>

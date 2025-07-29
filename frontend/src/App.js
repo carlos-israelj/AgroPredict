@@ -81,7 +81,8 @@ const AgroPredictApp = () => {
   };
 
 
-// Manejar compra de token
+  // 🔧 REEMPLAZA TODA la función handleBuyToken en App.js:
+
   const handleBuyToken = async (purchaseData) => {
     console.log('=== 🛒 APP.JS HANDLE BUY TOKEN ===');
     console.log('🛒 purchaseData received:', purchaseData);
@@ -121,8 +122,15 @@ const AgroPredictApp = () => {
       
       console.log('📨 buyToken result:', result);
       console.log('📨 result type:', typeof result);
+      console.log('📨 result success:', result?.success);
       
-      // Deducir del balance
+      // ✅ VERIFICAR si buyToken falló
+      if (!result || result.success === false) {
+        console.log('❌ buyToken failed:', result);
+        throw new Error(result?.message || 'Error en la transacción blockchain');
+      }
+      
+      // Deducir del balance solo si la compra fue exitosa
       console.log('💸 Deducting from balance...');
       const newBalance = deductFromBalance(totalPrice);
       console.log('💸 New balance after deduction:', newBalance);
@@ -139,6 +147,7 @@ const AgroPredictApp = () => {
         setSuccess('');
       }, 6000);
       
+      console.log('✅ Returning success result to BuyTokenModal');
       return { success: true, message: 'Compra completada exitosamente' };
       
     } catch (error) {
@@ -151,6 +160,7 @@ const AgroPredictApp = () => {
       console.log('❌ Setting error message:', errorMessage);
       setWalletError(errorMessage);
       
+      console.log('❌ Returning error result to BuyTokenModal');
       return { success: false, message: error.message };
     }
   };
@@ -251,7 +261,7 @@ const AgroPredictApp = () => {
             <p>🌾 AgroPredict MVP - Empoderando agricultores ecuatorianos con blockchain</p>
             <p className="mt-1">
               Contrato deployado en Scroll Sepolia: 
-              <span className="font-mono ml-1">0xE73082676Feeb5fAd9a262f57EaC3450E0bA1d91</span>
+              <span className="font-mono ml-1">{process.env.REACT_APP_CONTRACT_ADDRESS}</span>
             </p>
           </div>
         </div>
