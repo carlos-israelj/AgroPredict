@@ -1,6 +1,15 @@
+// frontend/src/components/tokenization/TokenizeModal.js - VERSIÓN CORREGIDA
+// ✅ CAMBIO PRINCIPAL: Campo de precio completamente manual, sin auto-llenado
+
 import React, { useState } from 'react';
-import { CheckCircle, MapPin, Camera, Upload, X } from 'lucide-react';
-import { productData } from '../../data/productData';
+import { CheckCircle, MapPin, Upload, X, AlertTriangle, Info } from 'lucide-react';
+import { 
+  productData, 
+  getReferencePrice, 
+  isPriceReasonable, 
+  getPriceRange,
+  getPriceWarning 
+} from '../../data/productData';
 
 const TokenizeModal = ({ onClose, onSubmit }) => {
   const [step, setStep] = useState(1);
@@ -9,7 +18,7 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
     cropType: '',
     variety: '',
     quantity: '',
-    pricePerUnit: '',
+    pricePerUnit: '', // ✅ SIEMPRE VACÍO al iniciar - usuario debe ingresar manualmente
     deliveryDate: '',
     location: '',
     farmSize: '',
@@ -21,10 +30,11 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
     description: ''
   });
   const [loading, setLoading] = useState(false);
+  const [priceWarning, setPriceWarning] = useState(null);
 
-  // ✅ CORREGIDO: Manejar selección de cultivo - SIN auto-llenar precio
+  // ✅ CORREGIDO: Manejar selección de cultivo - NO auto-llenar precio
   const handleCropSelection = (cropKey) => {
-    console.log('=== DEBUG CROP SELECTION (FIXED) ===');
+    console.log('=== CROP SELECTION (FIXED VERSION) ===');
     console.log('cropKey:', cropKey);
     console.log('productData[cropKey]:', productData[cropKey]);
     
@@ -32,9 +42,25 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
     setFormData({
       ...formData,
       cropType: cropKey,
-      pricePerUnit: ''  // ✅ CAMPO VACÍO para entrada manual
+      pricePerUnit: ''  // ✅ SIEMPRE VACÍO - Usuario debe ingresar manualmente
     });
     setStep(2);
+  };
+
+  // ✅ NUEVO: Manejar cambios en el campo precio con validación en tiempo real
+  const handlePriceChange = (value) => {
+    setFormData({
+      ...formData,
+      pricePerUnit: value
+    });
+    
+    // Mostrar advertencia de precio en tiempo real
+    if (value && selectedCrop) {
+      const warning = getPriceWarning(selectedCrop, value);
+      setPriceWarning(warning);
+    } else {
+      setPriceWarning(null);
+    }
   };
 
   // Manejar cambios en el formulario
@@ -43,6 +69,28 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
       ...formData,
       [field]: value
     });
+  };
+
+  // ✅ NUEVA FUNCIÓN: Validar precio ingresado
+  const validatePrice = (price) => {
+    const numPrice = parseFloat(price);
+    
+    // Verificaciones básicas
+    if (isNaN(numPrice) || numPrice <= 0) {
+      return { valid: false, message: 'El precio debe ser un número positivo' };
+    }
+    
+    // Verificación mínima (al menos 10 centavos)
+    if (numPrice < 0.10) {
+      return { valid: false, message: 'El precio mínimo es $0.10' };
+    }
+    
+    // Verificación máxima razonable
+    if (numPrice > 1000) {
+      return { valid: false, message: 'Precio demasiado alto (máximo $1000)' };
+    }
+    
+    return { valid: true, message: '' };
   };
 
   // Manejar subida de fotos
@@ -94,9 +142,9 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
     return totalUSD / ETH_USD_RATE;
   };
 
-  // ✅ CORREGIDO: Handle Submit con conversión correcta
+  // ✅ CORREGIDO: Handle Submit con validación de precio mejorada
   const handleSubmit = async () => {
-    console.log('=== HANDLE SUBMIT CALLED (FIXED) ===');
+    console.log('=== HANDLE SUBMIT (FIXED VERSION) ===');
     console.log('formData antes de validar:', formData);
     
     if (!validateForm()) {
@@ -104,30 +152,39 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
       return;
     }
 
+    // ✅ VALIDAR PRECIO antes de enviar
+    const priceValidation = validatePrice(formData.pricePerUnit);
+    if (!priceValidation.valid) {
+      alert(`❌ ${priceValidation.message}`);
+      return;
+    }
+
+    // Mostrar confirmación para precios fuera del rango típico
+    if (selectedCrop && !isPriceReasonable(selectedCrop, parseFloat(formData.pricePerUnit))) {
+      const range = getPriceRange(selectedCrop);
+      const continueAnyway = window.confirm(
+        `⚠️ Tu precio de $${formData.pricePerUnit} está fuera del rango típico (${range}).\n\n¿Deseas continuar con este precio?`
+      );
+      if (!continueAnyway) {
+        return;
+      }
+    }
+
     try {
       setLoading(true);
       
-      // ✅ VALIDACIÓN del precio ingresado
       const priceUSDInput = parseFloat(formData.pricePerUnit);
       
-      console.log('=== 🔍 PRICE VALIDATION ===');
-      console.log('🔍 formData.pricePerUnit (raw):', formData.pricePerUnit);
-      console.log('🔍 parseFloat result:', priceUSDInput);
-      console.log('🔍 isNaN check:', isNaN(priceUSDInput));
-      console.log('🔍 > 0 check:', priceUSDInput > 0);
+      console.log('=== PRICE VALIDATION PASSED ===');
+      console.log('priceUSDInput:', priceUSDInput);
+      console.log('Selected crop:', selectedCrop);
       
-      if (isNaN(priceUSDInput) || priceUSDInput <= 0) {
-        throw new Error(`Precio inválido: ${formData.pricePerUnit}. Ingresa un precio válido en dólares.`);
-      }
-      
-      console.log('=== 📦 PREPARING CONTRACT DATA ===');
-      
-      // ✅ PREPARAR datos para el contrato (web3.js hará la conversión USD→ETH)
+      // ✅ PREPARAR datos para el contrato (el servicio hará la conversión USD→ETH)
       const contractData = {
         cropType: formData.cropType,
         variety: formData.variety,
         quantity: parseInt(formData.quantity),
-        pricePerUnit: priceUSDInput, // ✅ Enviar en USD, web3.js convertirá a ETH
+        pricePerUnit: priceUSDInput, // ✅ Precio exacto ingresado por el usuario
         deliveryDate: formData.deliveryDate,
         location: formData.location,
         qualityGrade: formData.qualityGrade,
@@ -135,22 +192,13 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
         description: formData.description
       };
       
-      console.log('📦 contractData final:', contractData);
-      console.log('📦 pricePerUnit (USD):', contractData.pricePerUnit);
+      console.log('contractData final:', contractData);
+      console.log('pricePerUnit (USD) from user:', contractData.pricePerUnit);
       
-      // 🎯 CASO ESPECIAL PARA CAFÉ
-      if (formData.cropType === 'CAFE' && priceUSDInput === 4) {
-        console.log('🎯 CASO CAFÉ $4 - DETALLES:');
-        console.log('  - Input: $4 USD');
-        console.log('  - Esperado ETH: 0.0016');
-        console.log('  - Cantidad: 1');
-        console.log('  - Total esperado: $4 USD / 0.0016 ETH');
-      }
-      
-      console.log('=== 📞 CALLING onSubmit ===');
+      console.log('=== CALLING onSubmit ===');
       
       const result = await onSubmit(contractData);
-      console.log('📨 onSubmit result:', result);
+      console.log('onSubmit result:', result);
       
       if (result && result.success) {
         console.log('✅ Token creado exitosamente');
@@ -214,8 +262,12 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
                       <div className="text-2xl">{crop.emoji}</div>
                       <div>
                         <div className="font-bold">{crop.name}</div>
+                        {/* ✅ CORREGIDO: Usar getReferencePrice en lugar de currentPriceUSD */}
                         <div className="text-sm text-gray-600">
-                          Referencia: ${crop.currentPriceUSD}/{crop.unit}
+                          Referencia: ${getReferencePrice(key, 'typical')}/{crop.unit}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Rango: {getPriceRange(key)}
                         </div>
                       </div>
                     </div>
@@ -290,18 +342,41 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
                     type="number"
                     step="0.01"
                     value={formData.pricePerUnit}
-                    onChange={(e) => handleInputChange('pricePerUnit', e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg"
+                    onChange={(e) => handlePriceChange(e.target.value)}
+                    className={`w-full p-3 border rounded-lg ${
+                      priceWarning?.type === 'warning' ? 'border-yellow-400' : 
+                      priceWarning?.type === 'success' ? 'border-green-400' : 
+                      'border-gray-300'
+                    }`}
                     placeholder="Ingresa tu precio en USD (ej: 4.00)"
                     min="0"
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Equivale a ~{((parseFloat(formData.pricePerUnit) || 0) / 2500).toFixed(6)} ETH
-                  </p>
-                  <p className="text-xs text-blue-600 mt-1">
-                    💡 Referencia de mercado: ${productData[selectedCrop].currentPriceUSD}/{productData[selectedCrop].unit}
-                  </p>
+                  
+                  {/* ✅ CORREGIDO: Información de referencia sin auto-llenado */}
+                  <div className="mt-1 space-y-1">
+                    <p className="text-xs text-gray-500">
+                      Equivale a ~{((parseFloat(formData.pricePerUnit) || 0) / 2500).toFixed(6)} ETH
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      💡 Referencia de mercado: ${getReferencePrice(selectedCrop, 'typical')}/{productData[selectedCrop].unit}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Rango típico: {getPriceRange(selectedCrop)}
+                    </p>
+                  </div>
+
+                  {/* ✅ NUEVO: Mostrar advertencias de precio */}
+                  {priceWarning && (
+                    <div className={`mt-2 p-2 rounded-lg flex items-center gap-2 text-sm ${
+                      priceWarning.type === 'warning' ? 'bg-yellow-50 text-yellow-700' : 
+                      priceWarning.type === 'success' ? 'bg-green-50 text-green-700' :
+                      'bg-gray-50 text-gray-700'
+                    }`}>
+                      {priceWarning.type === 'warning' ? <AlertTriangle size={16} /> : <Info size={16} />}
+                      {priceWarning.message}
+                    </div>
+                  )}
                 </div>
 
                 <div className="md:col-span-2">
@@ -559,6 +634,18 @@ const TokenizeModal = ({ onClose, onSubmit }) => {
                   <li>• Comisión de plataforma: 2.5%</li>
                   <li>• Compromiso legal de entrega</li>
                 </ul>
+              </div>
+
+              {/* ✅ NUEVO: Confirmación de precio */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h4 className="font-bold text-yellow-800 mb-2">💰 Confirmación de Precio</h4>
+                <div className="text-sm text-yellow-700">
+                  <p>Tu precio: <span className="font-bold">${formData.pricePerUnit} USD por {productData[selectedCrop]?.unit}</span></p>
+                  <p>Referencia de mercado: <span className="font-bold">${getReferencePrice(selectedCrop, 'typical')} USD</span></p>
+                  {priceWarning && (
+                    <p className="mt-1 font-medium">{priceWarning.message}</p>
+                  )}
+                </div>
               </div>
 
               <div className="flex gap-3">

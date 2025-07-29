@@ -1,4 +1,6 @@
-// services/contractService.js - Servicio para interactuar con el smart contract
+// frontend/src/services/contractService.js - VERSIÓN CORREGIDA
+// ✅ CAMBIO PRINCIPAL: Conversión USD→Wei mejorada para cualquier precio
+
 import { ethers } from 'ethers';
 import { CONFIG } from '../config';
 import { AGROPREDICT_ABI } from '../contracts/abi';
@@ -6,8 +8,6 @@ import { walletService } from './walletService';
 import { 
   formatTokenData, 
   formatStats, 
-  convertUSDtoETH, 
-  convertETHtoWei,
   convertWeiToETH,
   parseWeb3Error,
   generateIPFSHash 
@@ -282,40 +282,101 @@ class ContractService {
   // =================== FUNCIONES DE ESCRITURA ===================
 
   /**
-   * Crea un nuevo token de cosecha - VERSIÓN CORREGIDA
+   * ✅ FUNCIÓN CORREGIDA: Conversión USD → Wei usando aritmética de enteros
+   * Funciona para cualquier precio (incluyendo $4, $15, $320, etc.)
+   * @param {number} priceUSD - Precio en USD
+   * @returns {ethers.BigNumber} Precio en Wei
+   */
+  convertUSDtoWeiSafe(priceUSD) {
+    console.log('🔧 === SAFE USD TO WEI CONVERSION (FIXED) ===');
+    console.log('🔧 Input USD:', priceUSD);
+    
+    // ✅ VALIDACIÓN: Asegurar que el precio es válido
+    const priceNum = parseFloat(priceUSD);
+    if (isNaN(priceNum) || priceNum <= 0) {
+      throw new Error(`Precio USD inválido: ${priceUSD}`);
+    }
+    
+    // ✅ CONVERSIÓN: Usar aritmética de enteros para máxima precisión
+    // $1 USD = 0.0004 ETH (usando rate 1 ETH = 2500 USD)
+    // 0.0004 ETH = 400,000,000,000,000 Wei
+    // Por lo tanto: $0.01 = 4,000,000,000,000 Wei
+    
+    const priceCents = Math.round(priceNum * 100);
+    console.log('🔧 Price in cents:', priceCents);
+    
+    // Verificar que no perdimos precisión en la conversión a centavos
+    const backToUSD = priceCents / 100;
+    if (Math.abs(backToUSD - priceNum) > 0.01) {
+      throw new Error(`Precio con demasiados decimales: ${priceUSD}. Usa máximo 2 decimales.`);
+    }
+    
+    // ✅ CÁLCULO: Wei por centavo
+    const weiPerCent = ethers.BigNumber.from('4000000000000'); // 4 * 10^12 Wei por centavo
+    const priceInWei = weiPerCent.mul(priceCents);
+    
+    console.log('🔧 Wei per cent:', weiPerCent.toString());
+    console.log('🔧 Final Wei amount:', priceInWei.toString());
+    
+    // ✅ VERIFICACIÓN: Convertir de vuelta para asegurar precisión
+    const backToETH = ethers.utils.formatEther(priceInWei);
+    const backToUSDVerification = parseFloat(backToETH) * 2500;
+    
+    console.log('🔧 Verification - back to ETH:', backToETH);
+    console.log('🔧 Verification - back to USD:', backToUSDVerification);
+    console.log('🔧 Original USD:', priceUSD);
+    console.log('🔧 Difference:', Math.abs(backToUSDVerification - priceUSD));
+    
+    // Permitir pequeña diferencia debido a precisión limitada de Wei
+    if (Math.abs(backToUSDVerification - priceUSD) > 0.05) {
+      console.warn('⚠️ Precision loss detected:', {
+        original: priceUSD,
+        converted: backToUSDVerification,
+        difference: Math.abs(backToUSDVerification - priceUSD)
+      });
+    }
+    
+    return priceInWei;
+  }
+
+  /**
+   * ✅ FUNCIÓN CORREGIDA: Crea un token de cosecha con precio dinámico
    * @param {Object} tokenData - Datos del token
    * @returns {Promise<Object>} Resultado de la transacción
    */
   async createCropToken(tokenData) {
     try {
-      console.log('🌾 === CREATING CROP TOKEN (GENERAL SOLUTION) ===');
+      console.log('🌾 === CREATING CROP TOKEN (UNIVERSAL SOLUTION) ===');
       console.log('🌾 tokenData:', tokenData);
       
       if (!this.contract) await this.initialize();
       
       const { cropType, quantity, pricePerUnit, deliveryDate, location } = tokenData;
       
-      // Validaciones
+      // ✅ VALIDACIONES
       if (!cropType || !quantity || !pricePerUnit || !deliveryDate || !location) {
         throw new Error('Todos los campos son requeridos');
       }
       
-      console.log('💰 === GENERAL PRICE CONVERSION ===');
+      console.log('💰 === UNIVERSAL PRICE CONVERSION ===');
       console.log('💰 Original pricePerUnit (USD):', pricePerUnit);
+      console.log('💰 Type of pricePerUnit:', typeof pricePerUnit);
       
       const priceUSD = parseFloat(pricePerUnit);
       if (isNaN(priceUSD) || priceUSD <= 0) {
         throw new Error(`Precio inválido: ${pricePerUnit}`);
       }
       
-      // ✅ SOLUCIÓN GENERAL: Aritmética de enteros para cualquier precio
+      // ✅ CONVERSIÓN UNIVERSAL: Funciona para $4, $15, $320, cualquier precio
       const priceInWei = this.convertUSDtoWeiSafe(priceUSD);
       
-      console.log('💰 Final price in Wei:', priceInWei.toString());
-      console.log('💰 Back to ETH for verification:', ethers.utils.formatEther(priceInWei));
-      console.log('💰 Back to USD for verification:', parseFloat(ethers.utils.formatEther(priceInWei)) * 2500);
+      console.log('💰 === CONVERSION RESULTS ===');
+      console.log('💰 Input:', `$${priceUSD} USD`);
+      console.log('💰 Output:', `${priceInWei.toString()} Wei`);
+      console.log('💰 Verification:', `${ethers.utils.formatEther(priceInWei)} ETH`);
+      console.log('💰 Back to USD:', `$${parseFloat(ethers.utils.formatEther(priceInWei)) * 2500}`);
       
-      // Verificaciones de seguridad
+      // ✅ VALIDACIONES de seguridad
       if (priceInWei.isZero()) {
         throw new Error('El precio convertido a Wei es cero');
       }
@@ -334,11 +395,11 @@ class ContractService {
       // Generar hash IPFS simulado
       const ipfsHash = generateIPFSHash();
       
-      // Preparar parámetros para el contrato
+      // ✅ PREPARAR parámetros para el contrato
       const contractParams = [
         cropType,
         parseInt(quantity),
-        priceInWei,
+        priceInWei, // ✅ Precio en Wei calculado dinámicamente
         deliveryTimestamp,
         location,
         ipfsHash
@@ -346,34 +407,47 @@ class ContractService {
       
       console.log('📝 === CONTRACT PARAMETERS ===');
       contractParams.forEach((param, index) => {
-        console.log(`📝 Param ${index}:`, typeof param === 'object' ? param.toString() : param);
+        const paramNames = ['cropType', 'quantity', 'pricePerQuintal', 'deliveryDate', 'location', 'ipfsHash'];
+        console.log(`📝 ${paramNames[index]}:`, typeof param === 'object' ? param.toString() : param);
       });
       
       // Estimar gas
       console.log('⛽ Estimating gas...');
       const gasEstimate = await this.contract.estimateGas.mintCropToken(...contractParams);
-      const gasLimit = gasEstimate.mul(120).div(100);
+      const gasLimit = gasEstimate.mul(120).div(100); // 20% extra
       
       console.log('⛽ Gas estimate:', gasEstimate.toString());
+      console.log('⛽ Gas limit (with buffer):', gasLimit.toString());
       
-      // Enviar transacción
+      // ✅ ENVIAR TRANSACCIÓN
       console.log('🚀 Sending transaction...');
       const tx = await this.contract.mintCropToken(...contractParams, {
         gasLimit: gasLimit
       });
       
       console.log('📤 Transaction sent:', tx.hash);
+      console.log('⏳ Waiting for confirmation...');
+      
       const receipt = await tx.wait();
       
-      console.log('✅ Token created successfully!');
+      console.log('🎉 TOKEN CREATED SUCCESSFULLY!');
+      console.log('✅ Transaction confirmed in block:', receipt.blockNumber);
+      console.log('⛽ Gas used:', receipt.gasUsed.toString());
       
-      // Extraer evento
+      // Extraer evento de creación
       const mintEvent = receipt.events?.find(e => e.event === 'CropTokenMinted');
       let tokenId = null;
       
       if (mintEvent) {
         tokenId = mintEvent.args.tokenId.toString();
         console.log('🎯 New token ID:', tokenId);
+        console.log('🎯 Event data:', {
+          tokenId: tokenId,
+          farmer: mintEvent.args.farmer,
+          cropType: mintEvent.args.cropType,
+          quantity: mintEvent.args.quantity.toString(),
+          pricePerQuintal: ethers.utils.formatEther(mintEvent.args.pricePerQuintal)
+        });
       }
       
       return {
@@ -388,51 +462,6 @@ class ContractService {
       console.error('❌ Error creating crop token:', error);
       throw new Error(`Error creando token: ${error.message}`);
     }
-  }
-
-  /**
-   * Conversión segura USD → Wei usando aritmética de enteros
-   * @param {number} priceUSD - Precio en USD
-   * @returns {ethers.BigNumber} Precio en Wei
-   */
-  convertUSDtoWeiSafe(priceUSD) {
-    console.log('🔧 === SAFE USD TO WEI CONVERSION ===');
-    console.log('🔧 Input USD:', priceUSD);
-    
-    // Convertir a centavos para trabajar con enteros
-    const priceCents = Math.round(priceUSD * 100);
-    console.log('🔧 Price in cents:', priceCents);
-    
-    // Verificar que no perdimos precisión
-    const backToUSD = priceCents / 100;
-    console.log('🔧 Back to USD check:', backToUSD);
-    
-    if (Math.abs(backToUSD - priceUSD) > 0.01) {
-      throw new Error(`Precio con demasiados decimales: ${priceUSD}. Usa máximo 2 decimales.`);
-    }
-    
-    // Calcular Wei usando aritmética de enteros
-    // $1 = 0.0004 ETH = 400000000000000 Wei
-    // Entonces: $0.01 = 4000000000000 Wei
-    const weiPerCent = ethers.BigNumber.from('4000000000000'); // Wei por centavo
-    const priceInWei = weiPerCent.mul(priceCents);
-    
-    console.log('🔧 Wei per cent:', weiPerCent.toString());
-    console.log('🔧 Final Wei amount:', priceInWei.toString());
-    
-    // Verificación: convertir de vuelta para asegurar que está correcto
-    const backToETH = ethers.utils.formatEther(priceInWei);
-    const backToUSDVerification = parseFloat(backToETH) * 2500;
-    
-    console.log('🔧 Verification - back to ETH:', backToETH);
-    console.log('🔧 Verification - back to USD:', backToUSDVerification);
-    
-    // Permitir pequeña diferencia debido a precisión limitada de Wei
-    if (Math.abs(backToUSDVerification - priceUSD) > 0.02) {
-      console.warn('⚠️ Precision loss detected but within acceptable range');
-    }
-    
-    return priceInWei;
   }
 
   /**
@@ -718,6 +747,63 @@ class ContractService {
     this.contract = null;
     console.log('✅ Contract service disconnected');
   }
+
+  // =================== FUNCIONES DE DEBUG ===================
+
+  /**
+   * ✅ FUNCIÓN DE DEBUG: Probar conversión de precios
+   * @param {number} priceUSD - Precio en USD para probar
+   * @returns {Object} Resultados de la conversión
+   */
+  debugPriceConversion(priceUSD) {
+    console.log('🧪 === DEBUG PRICE CONVERSION ===');
+    
+    try {
+      const priceInWei = this.convertUSDtoWeiSafe(priceUSD);
+      const backToETH = ethers.utils.formatEther(priceInWei);
+      const backToUSD = parseFloat(backToETH) * 2500;
+      
+      const result = {
+        input: `${priceUSD} USD`,
+        output: `${priceInWei.toString()} Wei`,
+        verification: `${backToETH} ETH = ${backToUSD}`,
+        precision: `±${Math.abs(backToUSD - priceUSD).toFixed(4)}`,
+        success: true
+      };
+      
+      console.log('🧪 Debug result:', result);
+      return result;
+      
+    } catch (error) {
+      const result = {
+        input: `${priceUSD} USD`,
+        error: error.message,
+        success: false
+      };
+      
+      console.log('🧪 Debug error:', result);
+      return result;
+    }
+  }
+
+  /**
+   * ✅ FUNCIÓN DE DEBUG: Obtener estado del servicio
+   * @returns {Object} Estado completo del servicio
+   */
+  getDebugStatus() {
+    return {
+      contractAddress: CONFIG.CONTRACT_ADDRESS,
+      isInitialized: this.isInitialized(),
+      hasWallet: walletService.getIsConnected(),
+      eventListeners: this.eventListeners.length,
+      walletAccount: walletService.getAccount(),
+      networkInfo: {
+        ethUsdRate: CONFIG.ETH_USD_RATE,
+        gasMultiplier: CONFIG.GAS_MULTIPLIER,
+        defaultGasLimit: CONFIG.DEFAULT_GAS_LIMIT
+      }
+    };
+  }
 }
 
 // Singleton instance
@@ -726,4 +812,4 @@ export const contractService = new ContractService();
 // Export también la clase para testing
 export { ContractService };
 
-console.log('📜 ContractService module loaded');
+console.log('📜 ContractService module loaded with dynamic price conversion');

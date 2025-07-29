@@ -1,21 +1,28 @@
+// frontend/src/components/predictions/PricePredictionSystem.js - VERSIÓN CORREGIDA
+// ✅ CAMBIO PRINCIPAL: Usar getCurrentPrice en lugar de currentPriceUSD
+
 import React, { useState } from 'react';
 import { Search, Lightbulb, TrendingUp, AlertCircle } from 'lucide-react';
-import { productData, getProductBestMonth, getProductWorstMonth } from '../../data/productData';
+import { 
+  productData, 
+  getProductBestMonth, 
+  getProductWorstMonth,
+  getCurrentPrice  // ✅ AGREGADO: Importar nueva función
+} from '../../data/productData';
 import ProductSelector from './ProductSelector';
 import PriceChart from './PriceChart';
 import SeasonalityCard from './SeasonalityCard';
 import OptimalTimingCard from './OptimalTimingCard';
 
 const PricePredictionSystem = ({ onTokenize, isVerifiedFarmer }) => {
-  // CAMBIO: usar 'CACAO' en mayúscula para consistencia
   const [selectedProduct, setSelectedProduct] = useState('CACAO');
   
   const currentProduct = productData[selectedProduct];
   const bestMonth = getProductBestMonth(selectedProduct);
   const worstMonth = getProductWorstMonth(selectedProduct);
 
-  // Calcular tendencia actual vs mejor mes
-  const currentPrice = currentProduct?.currentPriceUSD || 0;
+  // ✅ CORREGIDO: Usar getCurrentPrice en lugar de currentPriceUSD
+  const currentPrice = getCurrentPrice(selectedProduct);
   const potentialGainFromNow = bestMonth ? (bestMonth.priceUSD - currentPrice) : 0;
   const percentageGainFromNow = currentPrice > 0 ? ((potentialGainFromNow / currentPrice) * 100).toFixed(1) : 0;
 
@@ -23,6 +30,7 @@ const PricePredictionSystem = ({ onTokenize, isVerifiedFarmer }) => {
   console.log('=== DEBUG PREDICTIONS FIXED ===');
   console.log('selectedProduct:', selectedProduct);
   console.log('currentProduct:', currentProduct);
+  console.log('currentPrice (from getCurrentPrice):', currentPrice);
   console.log('bestMonth:', bestMonth);
   console.log('worstMonth:', worstMonth);
   console.log('potentialGainFromNow:', potentialGainFromNow);
@@ -110,7 +118,7 @@ const PricePredictionSystem = ({ onTokenize, isVerifiedFarmer }) => {
           <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
             <h4 className="font-bold mb-2 text-blue-700">💰 Precio Actual</h4>
             <div className="text-3xl font-bold text-blue-600">
-              ${currentProduct.currentPriceUSD}
+              ${currentPrice.toFixed(2)}
             </div>
             <div className="text-sm text-gray-600">
               por {currentProduct.unit}
@@ -120,7 +128,7 @@ const PricePredictionSystem = ({ onTokenize, isVerifiedFarmer }) => {
           <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
             <h4 className="font-bold mb-2 text-green-700">📈 Precio Máximo</h4>
             <div className="text-3xl font-bold text-green-600">
-              ${bestMonth?.priceUSD || 0}
+              ${bestMonth?.priceUSD.toFixed(2) || '0.00'}
             </div>
             <div className="text-sm text-gray-600">
               en {bestMonth?.month || 'N/A'}
@@ -130,7 +138,7 @@ const PricePredictionSystem = ({ onTokenize, isVerifiedFarmer }) => {
           <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
             <h4 className="font-bold mb-2 text-yellow-700">💡 Ganancia Potencial</h4>
             <div className="text-3xl font-bold text-yellow-600">
-              +${potentialGainFromNow.toFixed(0)}
+              +${potentialGainFromNow.toFixed(1)}
             </div>
             <div className="text-sm text-gray-600">
               esperando al mejor momento
@@ -167,7 +175,9 @@ const PricePredictionSystem = ({ onTokenize, isVerifiedFarmer }) => {
       )}
 
       {/* Price Chart */}
-      <PriceChart predictions={currentProduct.predictions} />
+      {currentProduct.predictions && (
+        <PriceChart predictions={currentProduct.predictions} />
+      )}
 
       {/* Seasonality */}
       <SeasonalityCard product={currentProduct} />
@@ -203,7 +213,7 @@ const PricePredictionSystem = ({ onTokenize, isVerifiedFarmer }) => {
           </h3>
           <p className="text-green-100 mb-4">
             Tokeniza tu {currentProduct.name.toLowerCase()} ahora y véndelo automáticamente en {bestMonth.month} 
-            cuando el precio llegue a ${bestMonth.priceUSD}/{currentProduct.unit}
+            cuando el precio llegue a ${bestMonth.priceUSD.toFixed(2)}/{currentProduct.unit}
           </p>
           <button
             onClick={() => onTokenize(selectedProduct)}
